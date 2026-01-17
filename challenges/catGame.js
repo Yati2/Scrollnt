@@ -2,7 +2,8 @@
 // Manages the mini-game logic for Scrollnt
 
 class CatJumpingGame {
-    constructor(onComplete) {
+    constructor(challengeElement, onComplete) {
+        this.challengeElement = challengeElement;
         this.onComplete = onComplete;
         this.gameActive = false;
         this.gameContainer = null;
@@ -14,12 +15,12 @@ class CatJumpingGame {
         this.gameActive = true;
         console.log("[Scrollnt] Starting jumping game");
 
-        // Create game overlay
-        this.gameContainer = document.createElement("div");
-        this.gameContainer.id = "scrollnt-jumping-game";
-        this.gameContainer.className = "scrollnt-game-overlay";
+        // Use the existing challenge element instead of creating new overlay
+        const taskDiv = this.challengeElement.querySelector(
+            "#scrollnt-challenge-task",
+        );
 
-        this.gameContainer.innerHTML = `
+        taskDiv.innerHTML = `
             <div class="scrollnt-game-container">
                 <div class="scrollnt-game-header">
                     <h2>🐱 Jump Out of the Scroll! 🐱</h2>
@@ -35,7 +36,7 @@ class CatJumpingGame {
             </div>
         `;
 
-        document.body.appendChild(this.gameContainer);
+        console.log("[Scrollnt] Game content inserted into challenge wrapper");
 
         // Initialize game
         this.initGame();
@@ -50,30 +51,37 @@ class CatJumpingGame {
         // Game state
         const game = {
             cat: {
-                x: 20, // Start at left side
+                x: 20,
                 y: 100,
                 width: 90,
                 height: 90,
-                velocityX: 0.3,
+                velocityX: 0.2,
                 velocityY: 0,
                 gravity: 0.8,
                 jumpPower: -16,
                 isJumping: false,
             },
-            obstacles: [], // Stationary obstacles
+            obstacles: [],
             obstacleWidth: 50,
             obstacleHeight: 70,
-            goalX: 0, // Will be set to canvas.width - 100
+            goalX: 0,
         };
 
-        // Calculate ground position (100px above canvas base)
-        game.groundY = canvas.height - 100 - game.cat.height;
-        game.cat.y = game.groundY; // Start cat on ground
-        game.goalX = canvas.width - 100; // Goal line position
+        // Calculate ground position (same as obstacles - 20px above canvas base)
+        game.groundY = canvas.height - 400;
+        game.cat.y = game.groundY;
+        game.goalX = canvas.width - 100;
+
+        console.log(
+            "[Scrollnt] Game initialized - cat.x:",
+            game.cat.x,
+            "goalX:",
+            game.goalX,
+        );
 
         // Load background image
         const bgImage = new Image();
-        const bgPath = chrome.runtime.getURL("icons/catgame_bg.jpeg");
+        const bgPath = chrome.runtime.getURL("assets/catgame/catgame_bg.jpeg");
         bgImage.src = bgPath;
         let bgLoaded = false;
         bgImage.onload = () => {
@@ -95,7 +103,7 @@ class CatJumpingGame {
 
         // Use Pinkie Cat assets
         const basePath = chrome.runtime.getURL(
-            "cats/Pinkie Cat Animations/Clothing/",
+            "assets/cats/Pinkie Cat Animations/Clothing/",
         );
 
         // Track loading
@@ -146,7 +154,7 @@ class CatJumpingGame {
 
         // Load stone obstacle image
         const stoneImage = new Image();
-        const stonePath = chrome.runtime.getURL("icons/stone.png");
+        const stonePath = chrome.runtime.getURL("assets/catgame/stone.png");
         stoneImage.src = stonePath;
         let stoneLoaded = false;
         stoneImage.onload = () => {
@@ -157,13 +165,13 @@ class CatJumpingGame {
             console.error("[Scrollnt] Failed to load stone image");
         };
 
-        // Create 4 stationary obstacles with random sizes (20px above canvas base)
+        // Create 4 stationary obstacles with random sizes on the ground
         const obstaclePositions = [150, 300, 500, 650];
         game.obstacles = obstaclePositions.map((x) => {
             const sizeVariation = 40 + Math.random() * 50; // Random size between 40-90px
             return {
                 x: x,
-                y: game.groundY + game.cat.height - sizeVariation, // Align obstacle base with ground
+                y: canvas.height - 20 - sizeVariation, // Same ground level as cat (canvas bottom)
                 width: sizeVariation,
                 height: sizeVariation,
             };
@@ -192,7 +200,13 @@ class CatJumpingGame {
         canvas.addEventListener("click", handleClick);
         document.addEventListener("keydown", handleKeyPress);
 
-        // Game loop
+        // Game loop (delayed 1 second so popup is visible)
+        let gameLoopStarted = false;
+        setTimeout(() => {
+            gameLoopStarted = true;
+            gameLoop();
+        }, 1000);
+
         const gameLoop = () => {
             if (!self.gameActive) return;
 
@@ -216,8 +230,8 @@ class CatJumpingGame {
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
             }
 
-            // Update cat horizontal movement (always moves forward)
-            game.cat.x += game.cat.velocityX * 5;
+            // Update cat horizontal movement (balanced speed for gameplay)
+            game.cat.x += game.cat.velocityX * 4;
 
             // Update cat physics (vertical)
             game.cat.velocityY += game.cat.gravity;
@@ -233,18 +247,17 @@ class CatJumpingGame {
 
             // Check if cat reached the goal
             if (game.cat.x >= game.goalX) {
+                console.log(
+                    "[Scrollnt] WIN! cat.x:",
+                    game.cat.x,
+                    "goalX:",
+                    game.goalX,
+                );
                 this.gameWon();
                 canvas.removeEventListener("click", handleClick);
                 document.removeEventListener("keydown", handleKeyPress);
                 return;
             }
-
-            // Update progress
-            const progressRaw = Math.min(
-                100,
-                Math.floor((game.cat.x / game.goalX) * 100),
-            );
-            jumpCountEl.textContent = progressRaw;
 
             // Draw cat
             if (
@@ -346,24 +359,26 @@ class CatJumpingGame {
                     );
                 }
 
-                // Check collision - only fail if cat lands ON the obstacle (not jumping over it)
+                // Check collision - cat hits obstacle if:
+                // 1. Walking through it (not jumping high enough)
+                // 2. Landing on top of it
                 const catBottom = game.cat.y + game.cat.height;
-                const catCenterX = game.cat.x + game.cat.width / 2;
+                const catRight = game.cat.x + game.cat.width;
                 const obstacleTop = obstacle.y;
+                const obstacleLeft = obstacle.x;
+                const obstacleRight = obstacle.x + obstacle.width;
 
                 // Cat overlaps horizontally with obstacle
                 const horizontalOverlap =
-                    catCenterX > obstacle.x &&
-                    catCenterX < obstacle.x + obstacle.width;
+                    catRight > obstacleLeft && game.cat.x < obstacleRight;
 
-                // Cat is falling down and lands on obstacle
-                const landingOnObstacle =
-                    horizontalOverlap &&
-                    game.cat.velocityY >= 0 && // Falling down
-                    catBottom >= obstacleTop &&
-                    catBottom <= obstacleTop + 20; // Within landing range
+                // Cat overlaps vertically with obstacle (any collision)
+                const verticalOverlap =
+                    catBottom > obstacleTop &&
+                    game.cat.y < obstacleTop + obstacle.height;
 
-                if (landingOnObstacle) {
+                // Hit if cat touches obstacle in any way
+                if (horizontalOverlap && verticalOverlap) {
                     // HIT! Restart game
                     game.cat.x = 20;
                     game.cat.y = game.groundY;
@@ -408,11 +423,19 @@ class CatJumpingGame {
         console.log("[Scrollnt] Game won!");
         this.gameActive = false;
 
-        if (this.gameContainer) {
-            this.gameContainer.innerHTML = `
+        const taskDiv = this.challengeElement.querySelector(
+            "#scrollnt-challenge-task",
+        );
+        const winGifPath = chrome.runtime.getURL(
+            "assets/cats/Pinkie Cat Animations/Clothing/pink volantin.gif",
+        );
+
+        if (taskDiv) {
+            taskDiv.innerHTML = `
                 <div class="scrollnt-game-container">
                     <div class="scrollnt-game-victory">
                         <h2>🎉 You Did It! 🎉</h2>
+                        <img src="${winGifPath}" alt="Celebrating cat" style="width: 200px; height: 200px; margin: 20px auto; display: block;">
                         <p>The cat made it to safety!</p>
                         <p>You can continue scrolling now.</p>
                         <button id="close-game-btn" class="scrollnt-game-button">Continue</button>
@@ -423,7 +446,7 @@ class CatJumpingGame {
             document
                 .getElementById("close-game-btn")
                 .addEventListener("click", () => {
-                    this.gameContainer.remove();
+                    this.challengeElement.remove();
                     if (this.onComplete) {
                         this.onComplete();
                     }
