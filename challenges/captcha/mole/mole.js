@@ -63,7 +63,6 @@ function createMoleChallenge(taskDiv, challengeElement, onComplete) {
 
     const icons = document.createElement("div");
     icons.className = "captcha-icons";
-    icons.innerHTML = '<span class="captcha-icon">↻</span><span class="captcha-icon">🔊</span><span class="captcha-icon">ℹ</span>';
 
     controls.appendChild(icons);
     controls.appendChild(verifyButton);
