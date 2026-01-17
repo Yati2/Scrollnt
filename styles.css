@@ -43,7 +43,6 @@ html.scrollnt-viewport-shrink-3.scrollnt-zoom-drift {
 
 /* Drift animations - oscillate ±2.5% around base shrink level */
 @keyframes scrollnt-drift-level-1 {
-
     0%,
     100% {
         transform: scale(0.78);
@@ -58,7 +57,6 @@ html.scrollnt-viewport-shrink-3.scrollnt-zoom-drift {
 }
 
 @keyframes scrollnt-drift-level-2 {
-
     0%,
     100% {
         transform: scale(0.6825);
@@ -73,7 +71,6 @@ html.scrollnt-viewport-shrink-3.scrollnt-zoom-drift {
 }
 
 @keyframes scrollnt-drift-level-3 {
-
     0%,
     100% {
         transform: scale(0.585);
@@ -89,11 +86,10 @@ html.scrollnt-viewport-shrink-3.scrollnt-zoom-drift {
 
 /* Combined drift + desaturate animations */
 @keyframes scrollnt-drift-desaturate-level-1 {
-
     0%,
     100% {
         transform: scale(0.78);
-        filter: saturate(4.0) contrast(4.0);
+        filter: saturate(4) contrast(4);
     }
 
     50% {
@@ -103,11 +99,10 @@ html.scrollnt-viewport-shrink-3.scrollnt-zoom-drift {
 }
 
 @keyframes scrollnt-drift-desaturate-level-2 {
-
     0%,
     100% {
         transform: scale(0.6825);
-        filter: saturate(4.0) contrast(4.0);
+        filter: saturate(4) contrast(4);
     }
 
     50% {
@@ -117,11 +112,10 @@ html.scrollnt-viewport-shrink-3.scrollnt-zoom-drift {
 }
 
 @keyframes scrollnt-drift-desaturate-level-3 {
-
     0%,
     100% {
         transform: scale(0.585);
-        filter: saturate(4.0) contrast(4.0);
+        filter: saturate(4) contrast(4);
     }
 
     50% {
@@ -156,6 +150,11 @@ html.scrollnt-viewport-padding-bottom body {
     transition: transform 0.3s ease;
 }
 
+/* Icon Manipulation - Reduce opacity for action icons (Cases 4 & 5) */
+.scrollnt-icon-dimmed {
+    opacity: 0.65 !important;
+    transition: opacity 0.3s ease;
+}
 
 /* Desaturation - Animated (Cases 5-8) */
 .scrollnt-desaturate-video-animated {
@@ -163,17 +162,15 @@ html.scrollnt-viewport-padding-bottom body {
 }
 
 @keyframes scrollnt-desaturate-animation {
-
     0%,
     100% {
-        filter: saturate(4.0) contrast(4.0);
+        filter: saturate(4) contrast(4);
     }
 
     50% {
         filter: saturate(0.5) contrast(0.5);
     }
 }
-
 
 .scrollnt-reminder {
     position: fixed;
@@ -260,7 +257,9 @@ html.scrollnt-viewport-padding-bottom body {
     background: rgba(255, 255, 255, 0.1);
     color: white;
     text-align: center;
-    transition: border-color 0.2s, background 0.2s;
+    transition:
+        border-color 0.2s,
+        background 0.2s;
 }
 
 .math-input:focus {
@@ -380,7 +379,7 @@ html.scrollnt-viewport-padding-bottom body {
 .typing-user-input {
     font-size: 24px;
     font-weight: 700;
-    font-family: 'Courier New', monospace;
+    font-family: "Courier New", monospace;
     color: white;
     letter-spacing: 2px;
 }
@@ -396,9 +395,11 @@ html.scrollnt-viewport-padding-bottom body {
     background: rgba(255, 255, 255, 0.1);
     color: white;
     text-align: center;
-    font-family: 'Courier New', monospace;
+    font-family: "Courier New", monospace;
     letter-spacing: 1px;
-    transition: border-color 0.2s, background 0.2s;
+    transition:
+        border-color 0.2s,
+        background 0.2s;
 }
 
 .typing-input:focus {
@@ -486,7 +487,9 @@ html.scrollnt-viewport-padding-bottom body {
     font-size: 16px;
     font-weight: 600;
     cursor: pointer;
-    transition: transform 0.2s, box-shadow 0.2s;
+    transition:
+        transform 0.2s,
+        box-shadow 0.2s;
 }
 
 .scrollnt-challenge-btn:hover:not(:disabled) {
@@ -595,15 +598,15 @@ html.scrollnt-viewport-padding-bottom body {
     font-weight: 700;
     cursor: pointer;
     margin-top: 20px;
-    transition: transform 0.2s, box-shadow 0.2s;
+    transition:
+        transform 0.2s,
+        box-shadow 0.2s;
 }
 
 .scrollnt-game-button:hover {
     transform: translateY(-2px);
     box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
 }
-
-
 
 /* Auto-Lock Screen (Stage 9) */
 .scrollnt-autolock {
@@ -672,7 +675,6 @@ html.scrollnt-viewport-padding-bottom body {
         transform: translate(-50%, -50%);
     }
 }
-
 
 html.scrollnt-viewport-shrink-1 .scrollnt-challenge,
 html.scrollnt-viewport-shrink-2 .scrollnt-challenge,

@@ -27,7 +27,10 @@ class ScrollntTracker {
         const data = await chrome.storage.local.get(["maxDuration"]);
         if (!data.maxDuration || data.maxDuration < 1) {
             do {
-                let input = prompt("Set your max TikTok session duration in minutes (default 60):", "60");
+                let input = prompt(
+                    "Set your max TikTok session duration in minutes (default 60):",
+                    "60",
+                );
                 let val = parseInt(input);
                 this.maxDuration = val;
                 await chrome.storage.local.set({ maxDuration: val });
@@ -50,28 +53,38 @@ class ScrollntTracker {
             if (chrome?.storage?.onChanged) {
                 chrome.storage.onChanged.addListener((changes, area) => {
                     try {
-                        if (area === 'local' && changes.sessionPaused) {
+                        if (area === "local" && changes.sessionPaused) {
                             this.sessionPaused = changes.sessionPaused.newValue;
                             if (changes.pauseStartTime) {
-                                this.pauseStartTime = changes.pauseStartTime.newValue;
+                                this.pauseStartTime =
+                                    changes.pauseStartTime.newValue;
                             }
                             if (changes.sessionStart) {
-                                this.sessionStart = changes.sessionStart.newValue;
+                                this.sessionStart =
+                                    changes.sessionStart.newValue;
                             }
 
                             if (changes.sessionPaused.newValue === false) {
                                 this.startTracking();
-                            } else if (changes.sessionPaused.newValue === true) {
+                            } else if (
+                                changes.sessionPaused.newValue === true
+                            ) {
                                 this.stopTracking();
                             }
                         }
                     } catch (error) {
-                        console.warn('[Scrollnt] Error in storage change listener:', error);
+                        console.warn(
+                            "[Scrollnt] Error in storage change listener:",
+                            error,
+                        );
                     }
                 });
             }
         } catch (error) {
-            console.warn('[Scrollnt] Error setting up storage change listener:', error);
+            console.warn(
+                "[Scrollnt] Error setting up storage change listener:",
+                error,
+            );
         }
     }
 
@@ -186,11 +199,11 @@ class ScrollntTracker {
                         rect.top < window.innerHeight && rect.bottom > 0;
                     const visibleRatio = isVisible
                         ? Math.min(
-                            1,
-                            (Math.min(rect.bottom, window.innerHeight) -
-                                Math.max(rect.top, 0)) /
-                            rect.height,
-                        )
+                              1,
+                              (Math.min(rect.bottom, window.innerHeight) -
+                                  Math.max(rect.top, 0)) /
+                                  rect.height,
+                          )
                         : 0;
 
                     if (
@@ -247,7 +260,7 @@ class ScrollntTracker {
 
         // If currently paused, subtract the current pause period
         if (this.sessionPaused && this.pauseStartTime) {
-            elapsedTime -= (Date.now() - this.pauseStartTime);
+            elapsedTime -= Date.now() - this.pauseStartTime;
         }
 
         const durationCalc = elapsedTime / 1000 / 60; // minutes
@@ -287,7 +300,9 @@ class ScrollntTracker {
 
         // Log when intervention level changes
         if (previousLevel !== this.interventionLevel) {
-            console.log(`[Scrollnt] ⚠️ Intervention level changed: ${previousLevel} → ${this.interventionLevel} (Duration: ${duration.toFixed(2)} min / Max: ${md} min)`);
+            console.log(
+                `[Scrollnt] ⚠️ Intervention level changed: ${previousLevel} → ${this.interventionLevel} (Duration: ${duration.toFixed(2)} min / Max: ${md} min)`,
+            );
         }
 
         this.applyIntervention();
@@ -305,7 +320,9 @@ class ScrollntTracker {
             ) || document.body;
 
         if (this.interventionLevel === 0) {
-            console.log('[Scrollnt] Case 0: No interventions - Removing all effects');
+            console.log(
+                "[Scrollnt] Case 0: No interventions - Removing all effects",
+            );
             this.removeInterventions();
             return;
         }
@@ -317,13 +334,15 @@ class ScrollntTracker {
         switch (this.interventionLevel) {
             case 1:
                 // Case 1: padding cycle + viewport shrink + desaturation
-                console.log('Case 1');
+                console.log("Case 1");
+                this.applyIconManipulation();
                 this.applyDesaturation("animated");
+
                 break;
 
             case 2:
                 // Case 2: tilt + padding cycle + viewport shrink + desaturation
-                console.log('Case 2');
+                console.log("Case 2");
                 this.applyTiltVideo();
                 this.applyDesaturation("animated");
                 this.showReminder();
@@ -331,7 +350,7 @@ class ScrollntTracker {
 
             case 3:
                 // Case 3: tilt + padding cycle + viewport shrink + micro zoom drift + desaturation
-                console.log('Case 3');
+                console.log("Case 3");
                 this.applyTiltVideo();
                 this.applyMicroZoomDrift();
                 this.applyDesaturation("animated");
@@ -340,25 +359,27 @@ class ScrollntTracker {
 
             case 4:
                 // Case 4: tilt + padding cycle + viewport shrink + micro zoom drift + desaturation + reminder + ui issue
-                console.log('Case 4');
+                console.log("Case 4");
                 this.applyTiltVideo();
                 this.applyMicroZoomDrift();
                 this.applyDesaturation("animated");
+                this.applyIconManipulation();
                 this.showReminder();
                 break;
 
             case 5:
                 // Case 5: tilt + padding cycle + viewport shrink + micro zoom drift + desaturation + challenge + ui issue
-                console.log('Case 5');
+                console.log("Case 5");
                 this.applyTiltVideo();
                 this.applyMicroZoomDrift();
                 this.applyDesaturation("animated");
+                this.applyIconManipulation();
                 this.challengeManager.checkChallengeTrigger(2);
                 break;
 
             case 6:
                 // Case 6: Auto Lock
-                console.log('Case 6');
+                console.log("Case 6");
                 this.showAutoLock();
                 break;
         }
@@ -400,10 +421,10 @@ class ScrollntTracker {
                 const lastCycle =
                     this.lastShrinkCycleTime >= firstInterventionTime
                         ? Math.floor(
-                            (this.lastShrinkCycleTime -
-                                firstInterventionTime) /
-                            cycleDuration,
-                        )
+                              (this.lastShrinkCycleTime -
+                                  firstInterventionTime) /
+                                  cycleDuration,
+                          )
                         : -1;
 
                 // If we're in a new cycle, advance to next shrink level
@@ -442,9 +463,9 @@ class ScrollntTracker {
             const lastCycle =
                 this.lastPaddingCycleTime >= firstInterventionTime
                     ? Math.floor(
-                        (this.lastPaddingCycleTime - firstInterventionTime) /
-                        cycleDuration,
-                    )
+                          (this.lastPaddingCycleTime - firstInterventionTime) /
+                              cycleDuration,
+                      )
                     : -1;
 
             // If we're in a new cycle, or haven't initialized yet, cycle the padding
@@ -458,6 +479,143 @@ class ScrollntTracker {
             this.currentPaddingSide = null;
             this.lastPaddingCycleTime = 0;
         }
+    }
+    applyIconManipulation() {
+        // Apply opacity reduction and random swapping for action icons (Cases 4 & 5 only)
+        const duration = this.getSessionDuration();
+        const md = this.maxDuration;
+        const swapInterval = 1 / 60; // Swap every 1 minute (1/60 of an hour in minutes)
+
+        // Apply reduced opacity to all action icons
+        const icons = document.querySelectorAll(
+            '[data-e2e="like-icon"], [data-e2e="comment-icon"], [data-e2e="share-icon"]',
+        );
+
+        icons.forEach((icon) => {
+            if (!icon.classList.contains("scrollnt-icon-dimmed")) {
+                icon.classList.add("scrollnt-icon-dimmed");
+            }
+        });
+
+        // Swap icons immediately for testing
+        this.swapActionIcons();
+
+        // Set up interval for swapping if not already set
+        if (!this.iconSwapInterval) {
+            this.iconSwapInterval = setInterval(() => {
+                if (!this.sessionPaused) {
+                    this.swapActionIcons();
+                }
+            }, 5000); // 5 seconds for testing (change to 60000 for production)
+        }
+    }
+
+    swapActionIcons() {
+        console.log("[Scrollnt] swapActionIcons called");
+
+        // Find all action button containers (each video has its own set)
+        const articles = document.querySelectorAll("article");
+        console.log(
+            `[Scrollnt] Found ${articles.length} articles for icon swapping`,
+        );
+
+        let swappedCount = 0;
+
+        articles.forEach((article, index) => {
+            // Try multiple selectors to find buttons
+            let likeBtn = article
+                .querySelector('[data-e2e="like-icon"]')
+                ?.closest("button");
+            let commentBtn = article
+                .querySelector('[data-e2e="comment-icon"]')
+                ?.closest("button");
+            let shareBtn = article
+                .querySelector('[data-e2e="share-icon"]')
+                ?.closest("button");
+
+            // If not found, try alternative selectors
+            if (!likeBtn || !commentBtn || !shareBtn) {
+                const buttons = article.querySelectorAll("button");
+                console.log(
+                    `[Scrollnt] Article ${index} has ${buttons.length} buttons`,
+                );
+
+                // Try to find buttons by aria-label or other attributes
+                buttons.forEach((btn) => {
+                    const ariaLabel =
+                        btn.getAttribute("aria-label")?.toLowerCase() || "";
+                    if (ariaLabel.includes("like") && !likeBtn) likeBtn = btn;
+                    if (ariaLabel.includes("comment") && !commentBtn)
+                        commentBtn = btn;
+                    if (ariaLabel.includes("share") && !shareBtn)
+                        shareBtn = btn;
+                });
+            }
+
+            if (likeBtn && commentBtn && shareBtn) {
+                console.log(
+                    `[Scrollnt] Found all 3 buttons in article ${index}`,
+                );
+
+                // Get parent container
+                const container = likeBtn.parentElement;
+                if (!container) {
+                    console.warn(`[Scrollnt] No parent container found`);
+                    return;
+                }
+
+                // Create array of buttons
+                const buttons = [likeBtn, commentBtn, shareBtn];
+
+                // Randomly shuffle using Fisher-Yates algorithm
+                for (let i = buttons.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+
+                    // Use CSS order property for swapping (more reliable)
+                    buttons[i].style.order = j.toString();
+                    buttons[j].style.order = i.toString();
+
+                    // Make sure parent is flex container
+                    if (container.style.display !== "flex") {
+                        container.style.display = "flex";
+                        container.style.flexDirection = "column";
+                    }
+
+                    // Swap in array
+                    [buttons[i], buttons[j]] = [buttons[j], buttons[i]];
+                }
+
+                swappedCount++;
+                console.log(`[Scrollnt] Swapped buttons in article ${index}`);
+            } else {
+                console.warn(
+                    `[Scrollnt] Article ${index} missing buttons - like: ${!!likeBtn}, comment: ${!!commentBtn}, share: ${!!shareBtn}`,
+                );
+            }
+        });
+
+        console.log(
+            `[Scrollnt] Total articles with swapped icons: ${swappedCount}`,
+        );
+    }
+
+    removeIconManipulation() {
+        // Remove dimmed effect from all icons
+        const icons = document.querySelectorAll(
+            '[data-e2e="like-icon"], [data-e2e="comment-icon"], [data-e2e="share-icon"]',
+        );
+
+        icons.forEach((icon) => {
+            icon.classList.remove("scrollnt-icon-dimmed");
+        });
+
+        // Clear swap interval
+        if (this.iconSwapInterval) {
+            clearInterval(this.iconSwapInterval);
+            this.iconSwapInterval = null;
+        }
+
+        this.lastIconSwapTime = 0;
     }
 
     cyclePadding() {
@@ -491,14 +649,24 @@ class ScrollntTracker {
 
     applyTiltVideo() {
         // Apply tilt effect to video containers (Cases 2-8) with randomized rotation
-        const videoContainers = document.querySelectorAll('[class*="DivContainer"]');
-        videoContainers.forEach(container => {
-            if (container.querySelector('video') && !container.classList.contains('scrollnt-tilt-video')) {
-                container.classList.add('scrollnt-tilt-video');
+        const videoContainers = document.querySelectorAll(
+            '[class*="DivContainer"]',
+        );
+        videoContainers.forEach((container) => {
+            if (
+                container.querySelector("video") &&
+                !container.classList.contains("scrollnt-tilt-video")
+            ) {
+                container.classList.add("scrollnt-tilt-video");
                 // Randomize tilt between -3 and +3 degrees
                 const randomTilt = (Math.random() * 6 - 3).toFixed(2);
-                container.style.setProperty('--scrollnt-tilt-angle', `${randomTilt}deg`);
-                console.log(`[Scrollnt] Applied random tilt: ${randomTilt}deg to video container`);
+                container.style.setProperty(
+                    "--scrollnt-tilt-angle",
+                    `${randomTilt}deg`,
+                );
+                console.log(
+                    `[Scrollnt] Applied random tilt: ${randomTilt}deg to video container`,
+                );
             }
         });
     }
@@ -507,7 +675,9 @@ class ScrollntTracker {
         // Apply desaturation effect to entire html element
         // type can be "static" (case 2) or "animated" (cases 5-8)
         if (type === "animated") {
-            document.documentElement.classList.add("scrollnt-desaturate-animated");
+            document.documentElement.classList.add(
+                "scrollnt-desaturate-animated",
+            );
         }
         // Note: We're only using animated desaturation now, static is deprecated
     }
@@ -518,10 +688,11 @@ class ScrollntTracker {
         document.documentElement.classList.add("scrollnt-zoom-drift");
     }
 
-
     removeTilt() {
         // Remove tilt from all video container elements
-        const videoContainers = document.querySelectorAll('[class*="DivContainer"]');
+        const videoContainers = document.querySelectorAll(
+            '[class*="DivContainer"]',
+        );
         videoContainers.forEach((container) => {
             container.classList.remove("scrollnt-tilt-video");
         });
@@ -533,15 +704,22 @@ class ScrollntTracker {
     }
 
     showReminder() {
-        if (document.querySelector('.scrollnt-reminder')) return;
+        if (document.querySelector(".scrollnt-reminder")) return;
 
         const sessionDuration = this.getSessionDuration();
-        const reminderCount = chrome.storage.local.get(["reminderCount"]).then(data => data.reminderCount || 0) || 0;
+        const reminderCount =
+            chrome.storage.local
+                .get(["reminderCount"])
+                .then((data) => data.reminderCount || 0) || 0;
         if (reminderCount <= 3) {
             this.reminderCount = reminderCount + 1;
             chrome.storage.local.set({ reminderCount: this.reminderCount });
         }
-        this.reminderCardManager.show(this.videoCount, sessionDuration, this.reminderCount);
+        this.reminderCardManager.show(
+            this.videoCount,
+            sessionDuration,
+            this.reminderCount,
+        );
     }
 
     showChallenge() {
@@ -601,14 +779,21 @@ class ScrollntTracker {
     }
 
     showAutoLock() {
-        if (document.querySelector('.scrollnt-autolock')) return;
+        if (document.querySelector(".scrollnt-autolock")) return;
 
         // Remove all interventions before showing autolock
         this.removeInterventions();
 
         const sessionDuration = this.getSessionDuration();
-        const reminderCount = chrome.storage.local.get(["reminderCount"]).then(data => data.reminderCount || 0) || 0;
-        this.autolockManager.show(this.videoCount, sessionDuration, reminderCount);
+        const reminderCount =
+            chrome.storage.local
+                .get(["reminderCount"])
+                .then((data) => data.reminderCount || 0) || 0;
+        this.autolockManager.show(
+            this.videoCount,
+            sessionDuration,
+            reminderCount,
+        );
 
         document.body.style.overflow = "hidden";
     }
@@ -622,7 +807,9 @@ class ScrollntTracker {
 
     removeDesaturation() {
         // Remove desaturation from html element
-        document.documentElement.classList.remove("scrollnt-desaturate-animated");
+        document.documentElement.classList.remove(
+            "scrollnt-desaturate-animated",
+        );
     }
 
     removeInterventions() {
@@ -630,7 +817,7 @@ class ScrollntTracker {
         document.documentElement.classList.remove(
             "scrollnt-viewport-shrink-1",
             "scrollnt-viewport-shrink-2",
-            "scrollnt-viewport-shrink-3"
+            "scrollnt-viewport-shrink-3",
         );
 
         this.removePadding();
@@ -676,7 +863,6 @@ class ScrollntTracker {
         });
         this.catGame.start();
     }
-
 }
 
 // Initialize when DOM is ready
