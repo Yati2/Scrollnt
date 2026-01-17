@@ -46,6 +46,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                 sessionDuration: 0,
                 maxDuration: 0,
                 sessionPaused: true,
+                pauseStartTime: null,
             });
             sendResponse({ success: true });
         });

@@ -22,10 +22,11 @@ function createMathChallenge(taskDiv, challengeElement, onComplete) {
     problemP.appendChild(strong);
 
     const answerInput = document.createElement("input");
-    answerInput.type = "number";
+    answerInput.type = "text";
     answerInput.id = "math-answer";
     answerInput.placeholder = "Enter your answer";
     answerInput.className = "math-input";
+    answerInput.inputMode = "numeric";
 
     const submitButton = document.createElement("button");
     submitButton.className = "scrollnt-challenge-btn";

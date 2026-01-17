@@ -1,119 +1,199 @@
 /* Scrollnt Visual Interventions */
 
-/* Progressive Viewport Shrink */
+/* Viewport Shrink - Level 1 (80%) */
 html.scrollnt-viewport-shrink-1 {
     transform: scale(0.8);
-    /* 80% - Level 1 */
     transition: transform 0.5s ease;
     transform-origin: center center;
 }
 
+/* Viewport Shrink - Level 2 (70%) */
 html.scrollnt-viewport-shrink-2 {
     transform: scale(0.7);
-    /* 70% - Level 2 */
     transition: transform 0.5s ease;
     transform-origin: center center;
 }
 
+/* Viewport Shrink - Level 3 (60%) */
 html.scrollnt-viewport-shrink-3 {
     transform: scale(0.6);
-    /* 60% - Level 3 */
     transition: transform 0.5s ease;
     transform-origin: center center;
 }
 
-/* Uneven Padding - Top/Bottom only, cycles every 2 minutes starting at 1.5 minutes */
+/* Micro Zoom Drift - Combined with Shrink Levels */
+/* When drift is active, it overrides the static scale with animated scale */
+html.scrollnt-viewport-shrink-1.scrollnt-zoom-drift {
+    animation: scrollnt-drift-level-1 4s ease-in-out infinite;
+    transform: none;
+    /* Animation handles transform */
+}
+
+html.scrollnt-viewport-shrink-2.scrollnt-zoom-drift {
+    animation: scrollnt-drift-level-2 4s ease-in-out infinite;
+    transform: none;
+    /* Animation handles transform */
+}
+
+html.scrollnt-viewport-shrink-3.scrollnt-zoom-drift {
+    animation: scrollnt-drift-level-3 4s ease-in-out infinite;
+    transform: none;
+    /* Animation handles transform */
+}
+
+/* Drift animations - oscillate ±2.5% around base shrink level */
+@keyframes scrollnt-drift-level-1 {
+
+    0%,
+    100% {
+        transform: scale(0.78);
+    }
+
+    /* 0.8 - 2.5% */
+    50% {
+        transform: scale(0.82);
+    }
+
+    /* 0.8 + 2.5% */
+}
+
+@keyframes scrollnt-drift-level-2 {
+
+    0%,
+    100% {
+        transform: scale(0.6825);
+    }
+
+    /* 0.7 - 2.5% */
+    50% {
+        transform: scale(0.7175);
+    }
+
+    /* 0.7 + 2.5% */
+}
+
+@keyframes scrollnt-drift-level-3 {
+
+    0%,
+    100% {
+        transform: scale(0.585);
+    }
+
+    /* 0.6 - 2.5% */
+    50% {
+        transform: scale(0.615);
+    }
+
+    /* 0.6 + 2.5% */
+}
+
+/* Viewport Padding - Top (cycles with bottom) */
 html.scrollnt-viewport-padding-top {
     padding-top: 15vh !important;
     transition: padding 0.5s ease;
-    overflow: hidden !important;
-    position: fixed !important;
-    width: 100% !important;
-    height: 100% !important;
 }
 
 html.scrollnt-viewport-padding-top body {
-    overflow: hidden !important;
-    position: fixed !important;
-    width: 100% !important;
-    height: 100% !important;
+    margin-top: 0 !important;
 }
 
+/* Viewport Padding - Bottom (cycles with top) */
 html.scrollnt-viewport-padding-bottom {
     padding-bottom: 15vh !important;
     transition: padding 0.5s ease;
-    overflow: hidden !important;
-    position: fixed !important;
-    width: 100% !important;
-    height: 100% !important;
 }
 
 html.scrollnt-viewport-padding-bottom body {
-    overflow: hidden !important;
-    position: fixed !important;
-    width: 100% !important;
-    height: 100% !important;
+    margin-bottom: 0 !important;
 }
 
-/* Desaturation 1 (Case 2): Static desaturation - Applied to HTML element */
-html.scrollnt-desaturate-1 {
+/* Tilt Effect - Applied to video containers (Cases 2-8) with random rotation */
+.scrollnt-tilt-video {
+    transform: rotate(var(--scrollnt-tilt-angle, -1.5deg));
+    transition: transform 0.3s ease;
+}
+
+/* Desaturation - Static (Case 2 only) */
+.scrollnt-desaturate-video-static {
     filter: saturate(0.6) contrast(0.6);
     transition: filter 0.5s ease;
 }
 
-/* Desaturation 2 (Case 5): Disco animation - Applied to HTML element */
-html.scrollnt-desaturate-2 {
-    animation: scrollnt-desaturate-animation 1s ease infinite;
+/* Desaturation - Animated (Cases 5-8) */
+.scrollnt-desaturate-video-animated {
+    animation: scrollnt-desaturate-animation 2s ease-in-out infinite;
 }
 
 @keyframes scrollnt-desaturate-animation {
 
     0%,
     100% {
-        filter: saturate(4.00) contrast(4.00);
+        filter: saturate(4.0) contrast(4.0);
     }
 
     50% {
-        filter: saturate(0.50) contrast(0.50);
+        filter: saturate(0.5) contrast(0.5);
     }
 }
 
-/* Level 3: Micro Zoom Drift */
-/* Note: This works with the existing scale transform at level 3 (0.6) */
-html.scrollnt-zoom-drift {
-    animation: scrollnt-drift 4s ease-in-out infinite;
+/* Hue Rotation - Animated Psychedelic Effect (Cases 6-8) */
+.scrollnt-hue-rotation-video,
+video.scrollnt-hue-rotation-video {
+    animation: scrollnt-hue-rotation-animation 3s linear infinite !important;
 }
 
-@keyframes scrollnt-drift {
+@keyframes scrollnt-hue-rotation-animation {
+    0% {
+        filter: hue-rotate(0deg) !important;
+    }
 
-    0%,
     100% {
-        transform: scale(0.58);
+        filter: hue-rotate(360deg) !important;
+    }
+}
+
+.scrollnt-desaturate-video-animated.scrollnt-hue-rotation-video,
+video.scrollnt-desaturate-video-animated.scrollnt-hue-rotation-video {
+    animation: scrollnt-desaturate-hue-combined 3s linear infinite !important;
+}
+
+@keyframes scrollnt-desaturate-hue-combined {
+    0% {
+        filter: saturate(4.0) contrast(4.0) hue-rotate(0deg) !important;
+    }
+
+    25% {
+        filter: saturate(0.5) contrast(0.5) hue-rotate(90deg) !important;
     }
 
     50% {
-        transform: scale(0.609);
+        filter: saturate(4.0) contrast(4.0) hue-rotate(180deg) !important;
     }
-}
 
-/* Blur Videos */
-.scrollnt-blur-video {
-    animation: scrollnt-blur-animation 1s ease infinite;
-}
+    75% {
+        filter: saturate(0.5) contrast(0.5) hue-rotate(270deg) !important;
+    }
 
-@keyframes scrollnt-blur-animation {
-
-    0%,
     100% {
-        filter: blur(3px) !important;
-    }
-
-    50% {
-        filter: blur(0px) !important;
+        filter: saturate(4.0) contrast(4.0) hue-rotate(360deg) !important;
     }
 }
 
-/* Reminder Popup (20 mins) */
+.scrollnt-tilt-video.scrollnt-desaturate-video-static {
+    transform: rotate(var(--scrollnt-tilt-angle, -1.5deg));
+    filter: saturate(0.6) contrast(0.6);
+}
+
+.scrollnt-tilt-video.scrollnt-desaturate-video-animated:not(.scrollnt-hue-rotation-video) {
+    transform: rotate(var(--scrollnt-tilt-angle, -1.5deg));
+    animation: scrollnt-desaturate-animation 2s ease-in-out infinite;
+}
+
+.scrollnt-tilt-video.scrollnt-desaturate-video-animated.scrollnt-hue-rotation-video {
+    transform: rotate(var(--scrollnt-tilt-angle, -1.5deg));
+    animation: scrollnt-desaturate-hue-combined 3s linear infinite;
+}
+
 .scrollnt-reminder {
     position: fixed;
     top: 50%;
@@ -160,181 +240,92 @@ html.scrollnt-zoom-drift {
     transform: scale(1.05);
 }
 
-/* Challenge Modal (30 mins) */
+/* ===================================================================
+   CHALLENGE MODAL (Cases 4, 7)
+   =================================================================== */
+
 .scrollnt-challenge {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.98);
+    background: rgba(0, 0, 0, 0.85);
     z-index: 9999999;
     display: flex;
     align-items: center;
     justify-content: center;
     animation: scrollnt-fade-in 0.3s ease;
-    filter: none !important;
-    transform-origin: center center !important;
-    isolation: isolate;
-}
-
-
-.scrollnt-challenge-content,
-.scrollnt-challenge-content * {
-    filter: none !important;
 }
 
 .scrollnt-challenge-content {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: rgba(0, 0, 0, 0.95);
     color: white;
     padding: 50px;
-    border-radius: 24px;
+    border-radius: 16px;
     max-width: 500px;
     text-align: center;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
-    transform: none !important;
-    filter: none !important;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
 }
 
 .scrollnt-challenge h2 {
     margin: 0 0 15px 0;
-    font-size: 32px;
-    font-weight: 700;
+    font-size: 24px;
+    font-weight: 600;
+    color: white;
 }
 
 .scrollnt-challenge p {
-    margin: 10px 0;
-    font-size: 18px;
-    opacity: 0.95;
+    margin: 10px 0 20px 0;
+    font-size: 16px;
+    opacity: 0.9;
+    color: white;
 }
 
 #scrollnt-challenge-task {
-    background: rgba(255, 255, 255, 0.2);
-    padding: 25px;
+    background: transparent;
+    padding: 25px 0;
     border-radius: 12px;
     margin: 25px 0;
     font-size: 20px;
     font-weight: 600;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    flex: 1;
 }
 
 .scrollnt-challenge-btn {
-    background: white;
-    color: #667eea;
+    background: #fff;
+    color: #000;
     border: none;
     padding: 15px 40px;
-    border-radius: 12px;
-    font-size: 16px;
-    font-weight: 700;
-    cursor: pointer;
-    transition:
-        transform 0.2s,
-        box-shadow 0.2s;
-}
-
-.scrollnt-challenge-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
-}
-
-/* Animations */
-@keyframes scrollnt-fade-in {
-    from {
-        opacity: 0;
-        transform: translate(-50%, -45%);
-    }
-
-    to {
-        opacity: 1;
-        transform: translate(-50%, -50%);
-    }
-}
-
-/* Sticky scroll effect */
-.scrollnt-sticky {
-    scroll-behavior: auto !important;
-    scroll-snap-type: none !important;
-    overscroll-behavior: contain !important;
-    /* Add slight resistance feel */
-    touch-action: pan-y !important;
-}
-
-/* Memory Game Styles */
-.memory-game-container {
-    width: 100%;
-    max-width: 100%;
-    margin: 0 auto;
-}
-
-.memory-game-container h3 {
-    margin: 0 0 8px 0;
-    font-size: 20px;
-    font-weight: 700;
-}
-
-.memory-game-container>p {
-    margin: 0 0 15px 0;
-    font-size: 14px;
-    opacity: 0.9;
-}
-
-.memory-game-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 10px;
-    margin: 15px 0;
-    max-width: 250px;
-    margin-left: auto;
-    margin-right: auto;
-    justify-items: center;
-}
-
-.memory-game-button {
-    aspect-ratio: 1;
-    border: none;
     border-radius: 8px;
-    cursor: pointer;
-    transition: transform 0.2s, opacity 0.2s, box-shadow 0.2s;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    min-height: 60px;
-}
-
-.memory-game-button:hover:not(:disabled) {
-    transform: scale(1.05);
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
-}
-
-.memory-game-button:active:not(:disabled) {
-    transform: scale(0.95);
-}
-
-.memory-game-button:disabled {
-    cursor: not-allowed;
-    opacity: 0.6;
-}
-
-.memory-game-status {
-    text-align: center;
     font-size: 16px;
     font-weight: 600;
-    margin: 12px 0;
-    min-height: 24px;
-    color: white;
-    transition: color 0.3s;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
 }
 
-.memory-game-info {
-    text-align: center;
-    font-size: 12px;
-    opacity: 0.8;
-    margin-top: 10px;
+.scrollnt-challenge-btn:hover:not(:disabled) {
+    transform: scale(1.05);
+    box-shadow: 0 5px 20px rgba(255, 255, 255, 0.3);
 }
 
-.memory-game-info p {
-    margin: 5px 0;
+.scrollnt-challenge-btn:disabled {
+    background: #ccc;
+    color: #888;
+    cursor: not-allowed;
 }
 
+/* ===================================================================
+   JUMPING GAME STYLES
+   =================================================================== */
 
-/* Jumping Game Styles */
 .scrollnt-game-overlay {
     position: fixed !important;
     top: 0 !important;
@@ -342,7 +333,7 @@ html.scrollnt-zoom-drift {
     width: 100% !important;
     height: 100% !important;
     background: rgba(0, 0, 0, 0.95) !important;
-    z-index: 2147483647 !important; /* Max z-index value */
+    z-index: 2147483647 !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
@@ -426,9 +417,7 @@ html.scrollnt-zoom-drift {
     font-weight: 700;
     cursor: pointer;
     margin-top: 20px;
-    transition:
-        transform 0.2s,
-        box-shadow 0.2s;
+    transition: transform 0.2s, box-shadow 0.2s;
 }
 
 .scrollnt-game-button:hover {
@@ -436,31 +425,24 @@ html.scrollnt-zoom-drift {
     box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
 }
 
-@keyframes scrollnt-fade-in-game {
-    from {
-        opacity: 0;
-        transform: scale(0.9);
-    }
 
-    to {
-        opacity: 1;
-        transform: scale(1);
-    }
-}
 
 /* Auto-Lock Screen (Stage 9) */
 .scrollnt-autolock {
     position: fixed;
     top: 0;
     left: 0;
-    width: 100%;
-    height: 100%;
+    width: 100vw;
+    height: 100vh;
+    min-width: 100vw;
+    min-height: 100vh;
     background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
     z-index: 10000001;
     display: flex;
     align-items: center;
     justify-content: center;
     animation: scrollnt-fade-in 0.5s ease;
+    overflow: hidden;
 }
 
 .scrollnt-autolock-content {
@@ -491,4 +473,33 @@ html.scrollnt-zoom-drift {
     background: rgba(255, 255, 255, 0.15);
     border-radius: 12px;
     font-size: 18px;
+}
+
+@keyframes scrollnt-fade-in {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -45%);
+    }
+
+    to {
+        opacity: 1;
+        transform: translate(-50%, -50%);
+    }
+}
+
+
+html.scrollnt-viewport-shrink-1 .scrollnt-challenge,
+html.scrollnt-viewport-shrink-2 .scrollnt-challenge,
+html.scrollnt-viewport-shrink-3 .scrollnt-challenge,
+html.scrollnt-viewport-shrink-1 .scrollnt-game-overlay,
+html.scrollnt-viewport-shrink-2 .scrollnt-game-overlay,
+html.scrollnt-viewport-shrink-3 .scrollnt-game-overlay {
+    transform: none !important;
+}
+
+.scrollnt-challenge-content,
+.scrollnt-challenge-content *,
+.scrollnt-game-overlay,
+.scrollnt-game-overlay * {
+    filter: none !important;
 }

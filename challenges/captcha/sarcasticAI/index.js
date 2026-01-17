@@ -66,11 +66,6 @@ function createSarcasticAIChallenge(taskDiv, challengeElement, onComplete) {
     const controls = document.createElement("div");
     controls.className = "captcha-controls";
 
-    const icons = document.createElement("div");
-    icons.className = "captcha-icons";
-    icons.innerHTML = '<span class="captcha-icon">↻</span><span class="captcha-icon">🔊</span><span class="captcha-icon">ℹ</span>';
-
-    controls.appendChild(icons);
     controls.appendChild(verifyButton);
 
     container.appendChild(header);
