@@ -13,8 +13,10 @@ class ScrollntTracker {
         this.checkInterval = null;
         this.currentPaddingSide = null;
         this.lastPaddingCycleTime = 0; // Track when padding was last cycled (in minutes)
-        this.gameActive = false;
         this.gameCompleted = false;
+        this.catGame = null;
+        this.challengeShownStages = new Set(); // Track which stages have shown challenges
+        this.gameInProgress = false; // Track if game is currently active
     }
 
     init() {
@@ -166,19 +168,37 @@ class ScrollntTracker {
     checkInterventionNeeded() {
         const duration = this.getSessionDuration();
 
-        // Check for 30-minute jumping game intervention
-        if (duration >= 30 && !this.gameCompleted && !this.gameActive) {
-            this.startJumpingGame();
-            return;
-        }
+        // TESTING: Trigger challenge at 1 minute instead of 30
+        // Stage progression based on duration
+        // Stage 1: 10 mins (1 min)
+        // Stage 2: 20 mins (2 mins)
+        // Stage 3: 25 mins (2.5 mins)
+        // Stage 4: 30 mins (3 mins) - Challenge
+        // Stage 5: 35 mins (3.5 mins)
+        // Stage 6: 40 mins (4 mins)
+        // Stage 7: 45 mins (4.5 mins) - Challenge
+        // Stage 8: 50 mins (5 mins)
+        // Stage 9: 60 mins (6 mins) - Auto-lock
 
-        // Progressive intervention levels based on your specs
-        if (duration >= 1) {
-            this.interventionLevel = 3; // Challenge level
-        } else if (duration >= 2) {
-            this.interventionLevel = 2; // Micro zoom drift + desaturation
-        } else if (duration >= 3) {
-            this.interventionLevel = 1; // Viewport shrink + desaturation
+        if (duration >= 60) {
+            this.interventionLevel = 9; // Auto-lock
+        } else if (duration >= 50) {
+            this.interventionLevel = 8; // Reminder 3
+        } else if (duration >= 45) {
+            this.interventionLevel = 7; // Challenge 2
+        } else if (duration >= 40) {
+            this.interventionLevel = 6; // Blur videos
+        } else if (duration >= 35) {
+            this.interventionLevel = 5; // Friction + Reminder 2
+        } else if (duration >= 0.5) {
+            // TESTING: Changed from 30 to 1
+            this.interventionLevel = 4; // UI Issue + Challenge 1
+        } else if (duration >= 25) {
+            this.interventionLevel = 3; // Micro zoom drift
+        } else if (duration >= 20) {
+            this.interventionLevel = 2; // Desaturation + Reminder 1
+        } else if (duration >= 10) {
+            this.interventionLevel = 1; // Viewport shrink + padding
         } else {
             this.interventionLevel = 0;
         }
@@ -188,28 +208,71 @@ class ScrollntTracker {
     }
 
     applyIntervention() {
+        // Don't apply interventions while game is active
+        if (this.gameInProgress) return;
+
         const container =
             document.querySelector(
                 '[data-e2e="recommend-list-item-container"]',
             ) || document.body;
 
         switch (this.interventionLevel) {
-            case 1:
-                this.applyViewportShrink();
-                this.applyViewportPaddingTop();
-                this.applyDesaturation();
+            case 0:
+                this.removeInterventions();
                 break;
-            case 2:
+            case 1: // Stage 1: 10 mins - Viewport shrink + padding
                 this.applyViewportShrink();
-                this.applyViewportPadding();
-                this.applyDesaturation();
                 break;
-            case 3:
+            case 2: // Stage 2: 20 mins - Desaturation + Reminder 1
                 this.applyViewportShrink();
-                this.applyViewportPadding();
+                this.applyDesaturation();
+                this.showReminder();
+                break;
+            case 3: // Stage 3: 25 mins - Micro zoom drift
+                this.applyViewportShrink();
                 this.applyDesaturation();
                 this.applyMicroZoomDrift(container);
-                this.showChallenge();
+                break;
+            case 4: // Stage 4: 30 mins - UI Issue + Challenge
+                this.applyViewportShrink();
+                this.applyDesaturation();
+                this.applyMicroZoomDrift(container);
+                if (!this.challengeShownStages.has(4)) {
+                    this.showChallenge(4);
+                    this.challengeShownStages.add(4);
+                }
+                break;
+            case 5: // Stage 5: 35 mins - Friction + Reminder 2
+                this.applyViewportShrink();
+                this.applyDesaturation();
+                this.applyMicroZoomDrift(container);
+                this.showReminder();
+                break;
+            case 6: // Stage 6: 40 mins - Blur videos
+                this.applyViewportShrink();
+                this.applyDesaturation();
+                this.applyMicroZoomDrift(container);
+                this.applyBlur(container);
+                break;
+            case 7: // Stage 7: 45 mins - Challenge 2
+                this.applyViewportShrink();
+                this.applyDesaturation();
+                this.applyMicroZoomDrift(container);
+                this.applyBlur(container);
+                if (!this.challengeShownStages.has(7)) {
+                    this.showChallenge(7);
+                    this.challengeShownStages.add(7);
+                }
+                break;
+            case 8: // Stage 8: 50 mins - Reminder 3
+                this.applyViewportShrink();
+                this.applyDesaturation();
+                this.applyMicroZoomDrift(container);
+                this.applyBlur(container);
+                this.showReminder();
+                break;
+            case 9: // Stage 9: 60 mins - Auto-lock
+                this.showAutoLock();
                 break;
             default:
                 this.removeInterventions();
@@ -344,15 +407,34 @@ class ScrollntTracker {
     `;
         document.body.appendChild(challenge);
 
-        this.loadRandomChallenge(challenge);
+        const selectedChallenge = this.loadRandomChallenge(challenge);
+
+        // Handle challenge button click
+        const startBtn = challenge.querySelector(".scrollnt-challenge-btn");
+        startBtn.addEventListener("click", () => {
+            if (selectedChallenge === "game") {
+                // Remove challenge modal and start game
+                challenge.remove();
+                this.startJumpingGame();
+            } else {
+                // For other challenges, just remove the modal
+                challenge.remove();
+            }
+        });
     }
 
     loadRandomChallenge(challengeElement) {
         const challenges = [
-            "Solve: 15 × 7 = ?",
-            'Type "productivity" backwards',
-            "Name 3 things you're grateful for today",
-            "Do 10 jumping jacks",
+            // TESTING: Other challenges commented out
+            // { text: "Complete 3 rounds of CAPTCHA", type: "text" },
+            { text: "Play the cat jumping game 🐱", type: "game" },
+            // {
+            //     text: "Memory Test: Recall the last 3 videos you watched",
+            //     type: "text",
+            // },
+            // { text: "Solve: 15 × 7 = ?", type: "text" },
+            // {
+            //     text: "Watch yare yare, it's time to go to bed kekekeke",
         ];
 
         const randomChallenge =
@@ -360,7 +442,9 @@ class ScrollntTracker {
         const taskDiv = challengeElement.querySelector(
             "#scrollnt-challenge-task",
         );
-        taskDiv.innerHTML = `<p><strong>${randomChallenge}</strong></p>`;
+        taskDiv.innerHTML = `<p><strong>${randomChallenge.text}</strong></p>`;
+
+        return randomChallenge.type;
     }
 
     removePadding() {
@@ -397,279 +481,43 @@ class ScrollntTracker {
     }
 
     startJumpingGame() {
-        if (this.gameActive || this.gameCompleted) return;
+        if (this.catGame || this.gameCompleted) return;
 
-        this.gameActive = true;
-        console.log("[Scrollnt] Starting jumping game at 30 minutes");
+        // Remove all interventions while game is active
+        this.removeInterventions();
 
-        // Create game overlay
-        const gameContainer = document.createElement("div");
-        gameContainer.id = "scrollnt-jumping-game";
-        gameContainer.className = "scrollnt-game-overlay";
+        // Mark that game is running
+        this.gameInProgress = true;
 
-        gameContainer.innerHTML = `
-            <div class="scrollnt-game-container">
-                <div class="scrollnt-game-header">
-                    <h2>🐱 Jump Out of the Scroll! 🐱</h2>
-                    <p>Help the cat jump over 3 platforms to unlock scrolling</p>
-                    <div class="scrollnt-game-stats">
-                        <span>Jumps: <span id="jump-count">0</span>/3</span>
-                    </div>
-                </div>
-                <canvas id="game-canvas" width="800" height="400"></canvas>
-                <div class="scrollnt-game-instructions">
-                    <p>Click or press SPACEBAR to jump</p>
+        this.catGame = new CatJumpingGame(() => {
+            this.gameCompleted = true;
+            this.catGame = null;
+            this.gameInProgress = false;
+            // Reapply interventions after game completes
+            this.applyIntervention();
+        });
+        this.catGame.start();
+    }
+
+    showAutoLock() {
+        if (document.querySelector(".scrollnt-autolock")) return;
+
+        const lockScreen = document.createElement("div");
+        lockScreen.className = "scrollnt-autolock";
+        lockScreen.innerHTML = `
+            <div class="scrollnt-autolock-content">
+                <h2>🔒 Auto-Lock Activated</h2>
+                <p>You've been scrolling for 60 minutes.</p>
+                <p>Time to take a break! 🌙</p>
+                <div class="scrollnt-autolock-timer">
+                    <p>This session has ended.</p>
                 </div>
             </div>
         `;
+        document.body.appendChild(lockScreen);
 
-        document.body.appendChild(gameContainer);
-
-        // Initialize game
-        this.initGame();
-    }
-
-    initGame() {
-        const canvas = document.getElementById("game-canvas");
-        const ctx = canvas.getContext("2d");
-        const jumpCountEl = document.getElementById("jump-count");
-
-        // Game state
-        const game = {
-            cat: {
-                x: 100,
-                y: 300,
-                width: 60,
-                height: 60,
-                velocityY: 0,
-                gravity: 0.6,
-                jumpPower: -12,
-                isJumping: false,
-            },
-            platforms: [],
-            successfulJumps: 0,
-            gameSpeed: 3,
-            spawnTimer: 0,
-            spawnInterval: 100,
-            groundY: 340,
-        };
-
-        // Load cat images
-        const catImages = {
-            jumping: new Image(),
-            idle: new Image(),
-            win: new Image(),
-        };
-
-        // Use Pinkie Cat assets
-        const basePath = chrome.runtime.getURL(
-            "cats/Pinkie Cat Animations/Clothing/",
-        );
-        catImages.jumping.src = basePath + "pink rosado saltando .gif";
-        catImages.idle.src = basePath + "pink respirando - ropa.gif";
-        catImages.win.src = basePath + "pink volantin.gif";
-
-        let currentCatImage = catImages.idle;
-
-        // Create initial platform
-        game.platforms.push({
-            x: canvas.width,
-            y: game.groundY,
-            width: 100,
-            height: 20,
-            passed: false,
-        });
-
-        // Input handling
-        const jump = () => {
-            if (!game.cat.isJumping) {
-                game.cat.velocityY = game.cat.jumpPower;
-                game.cat.isJumping = true;
-                currentCatImage = catImages.jumping;
-            }
-        };
-
-        const handleClick = (e) => {
-            jump();
-        };
-
-        const handleKeyPress = (e) => {
-            if (e.code === "Space") {
-                e.preventDefault();
-                jump();
-            }
-        };
-
-        canvas.addEventListener("click", handleClick);
-        document.addEventListener("keydown", handleKeyPress);
-
-        // Game loop
-        const gameLoop = () => {
-            if (!this.gameActive) return;
-
-            // Clear canvas
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            // Draw background
-            ctx.fillStyle = "#87CEEB";
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            // Draw ground
-            ctx.fillStyle = "#8B7355";
-            ctx.fillRect(
-                0,
-                game.groundY + game.cat.height,
-                canvas.width,
-                canvas.height - game.groundY - game.cat.height,
-            );
-
-            // Draw safe zone indicator
-            ctx.fillStyle = "rgba(144, 238, 144, 0.3)";
-            ctx.fillRect(0, 0, 150, canvas.height);
-            ctx.fillStyle = "#2d5016";
-            ctx.font = "16px Arial";
-            ctx.fillText("Safe Zone 🌿", 20, 30);
-
-            // Update cat physics
-            game.cat.velocityY += game.cat.gravity;
-            game.cat.y += game.cat.velocityY;
-
-            // Ground collision
-            if (game.cat.y >= game.groundY) {
-                game.cat.y = game.groundY;
-                game.cat.velocityY = 0;
-                game.cat.isJumping = false;
-                currentCatImage = catImages.idle;
-            }
-
-            // Draw cat
-            if (catImages.idle.complete) {
-                ctx.drawImage(
-                    currentCatImage,
-                    game.cat.x,
-                    game.cat.y,
-                    game.cat.width,
-                    game.cat.height,
-                );
-            } else {
-                // Fallback if images not loaded
-                ctx.fillStyle = "#FFB6C1";
-                ctx.fillRect(
-                    game.cat.x,
-                    game.cat.y,
-                    game.cat.width,
-                    game.cat.height,
-                );
-            }
-
-            // Spawn platforms
-            game.spawnTimer++;
-            if (
-                game.spawnTimer > game.spawnInterval &&
-                game.platforms.length < 3
-            ) {
-                game.platforms.push({
-                    x: canvas.width,
-                    y: game.groundY,
-                    width: 100,
-                    height: 20,
-                    passed: false,
-                });
-                game.spawnTimer = 0;
-            }
-
-            // Update and draw platforms
-            for (let i = game.platforms.length - 1; i >= 0; i--) {
-                const platform = game.platforms[i];
-                platform.x -= game.gameSpeed;
-
-                // Draw platform
-                ctx.fillStyle = "#654321";
-                ctx.fillRect(
-                    platform.x,
-                    platform.y,
-                    platform.width,
-                    platform.height,
-                );
-                ctx.fillStyle = "#90EE90";
-                ctx.fillRect(platform.x, platform.y - 5, platform.width, 5);
-
-                // Check if cat jumped over platform
-                if (
-                    !platform.passed &&
-                    platform.x + platform.width < game.cat.x
-                ) {
-                    platform.passed = true;
-                    game.successfulJumps++;
-                    jumpCountEl.textContent = game.successfulJumps;
-
-                    console.log(
-                        "[Scrollnt] Successful jump:",
-                        game.successfulJumps,
-                    );
-
-                    // Check win condition
-                    if (game.successfulJumps >= 3) {
-                        this.gameWon();
-                        canvas.removeEventListener("click", handleClick);
-                        document.removeEventListener("keydown", handleKeyPress);
-                        return;
-                    }
-                }
-
-                // Check collision (game over)
-                if (
-                    platform.x < game.cat.x + game.cat.width &&
-                    platform.x + platform.width > game.cat.x &&
-                    platform.y < game.cat.y + game.cat.height &&
-                    platform.y + platform.height > game.cat.y
-                ) {
-                    // Collision detected - reset
-                    game.successfulJumps = 0;
-                    jumpCountEl.textContent = game.successfulJumps;
-                    game.platforms = [];
-                    game.cat.y = game.groundY;
-                    game.cat.velocityY = 0;
-                    game.spawnTimer = 0;
-                    console.log("[Scrollnt] Hit platform - resetting");
-                }
-
-                // Remove off-screen platforms
-                if (platform.x + platform.width < 0) {
-                    game.platforms.splice(i, 1);
-                }
-            }
-
-            requestAnimationFrame(gameLoop);
-        };
-
-        gameLoop();
-    }
-
-    gameWon() {
-        console.log("[Scrollnt] Game won!");
-        this.gameActive = false;
-        this.gameCompleted = true;
-
-        const gameContainer = document.getElementById("scrollnt-jumping-game");
-        if (gameContainer) {
-            gameContainer.innerHTML = `
-                <div class="scrollnt-game-container">
-                    <div class="scrollnt-game-victory">
-                        <h2>🎉 You Did It! 🎉</h2>
-                        <p>The cat made it to safety!</p>
-                        <p>You can continue scrolling now.</p>
-                        <button id="close-game-btn" class="scrollnt-game-button">Continue</button>
-                    </div>
-                </div>
-            `;
-
-            document
-                .getElementById("close-game-btn")
-                .addEventListener("click", () => {
-                    gameContainer.remove();
-                });
-        }
+        // Disable scrolling
+        document.body.style.overflow = "hidden";
     }
 }
 

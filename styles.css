@@ -303,3 +303,48 @@ html.scrollnt-desaturate {
         transform: scale(1);
     }
 }
+
+/* Auto-Lock Screen (Stage 9) */
+.scrollnt-autolock {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+    z-index: 10000001;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: scrollnt-fade-in 0.5s ease;
+}
+
+.scrollnt-autolock-content {
+    text-align: center;
+    color: white;
+    padding: 60px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 24px;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.scrollnt-autolock-content h2 {
+    margin: 0 0 20px 0;
+    font-size: 42px;
+    font-weight: 700;
+}
+
+.scrollnt-autolock-content p {
+    margin: 10px 0;
+    font-size: 20px;
+    opacity: 0.95;
+}
+
+.scrollnt-autolock-timer {
+    margin-top: 30px;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 12px;
+    font-size: 18px;
+}
