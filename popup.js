@@ -58,17 +58,7 @@ document.getElementById("startStopBtn").addEventListener("click", async () => {
 });
 
 document.getElementById("resetBtn").addEventListener("click", async () => {
-    // Preserve maxDuration on reset
-    const data = await chrome.storage.local.get(["maxDuration"]);
-    const maxDuration = data.maxDuration || 0;
-    await chrome.storage.local.set({
-        sessionStart: Date.now(),
-        videoCount: 0,
-        lastUpdate: Date.now(),
-        maxDuration: 0,
-        sessionPaused: true,
-    });
-
+    await chrome.runtime.sendMessage({ action: "resetSession" });
     updateStats();
 
     // Notify content scripts to reset

@@ -1,6 +1,5 @@
 // Scrollnt - Content Script for TikTok
 // Tracks user behavior and applies progressive discouragement
-
 class ScrollntTracker {
     observedArticles = new Set();
     viewedArticles = new Set();
@@ -16,6 +15,7 @@ class ScrollntTracker {
         this.lastPaddingCycleTime = 0;
         this.lastShrinkCycleTime = 0;
         this.challengeManager = new ChallengeManager(this);
+        this.reminderCardManager = new ReminderCard();
         this.loadUserSettings();
     }
 
@@ -23,11 +23,12 @@ class ScrollntTracker {
         // Prompt for max session duration if not set
         const data = await chrome.storage.local.get(["maxDuration"]);
         if (!data.maxDuration || data.maxDuration <= 0) {
-            let input = prompt("Set your max TikTok session duration in minutes (default 60):", "60");
-            let val = parseInt(input);
-            if (isNaN(val) || val <= 0) val = 60;
-            this.maxDuration = val;
-            await chrome.storage.local.set({ maxDuration: val });
+            do{
+                let input = prompt("Set your max TikTok session duration in minutes (default 60, minimum 6):", "60");
+                let val = parseInt(input);
+                this.maxDuration = val;
+                await chrome.storage.local.set({ maxDuration: val });
+            } while (this.maxDuration <= 0);
         } else {
             this.maxDuration = data.maxDuration;
         }
@@ -201,7 +202,14 @@ class ScrollntTracker {
 
     getSessionDuration() {
         if (this.sessionPaused) return 0;
-        return Math.floor((Date.now() - this.sessionStart) / 1000 / 60); // minutes
+
+        const durationCalc= (Date.now() - this.sessionStart) / 1000 / 60;
+        
+        if (parseInt(durationCalc) <= 0 || this.maxDuration < 6) {
+            return durationCalc;
+        } else {
+            return parseInt(durationCalc);
+        }
     }
 
     checkInterventionNeeded() {
@@ -213,7 +221,7 @@ class ScrollntTracker {
         if (duration >= md) {
             this.interventionLevel = 9; // Full Lockdown
         } else if (duration >= (5 / 6) * md) {
-            this.interventionLevel = 8; // Viewport shrink + padding + desaturation + zoom drift + friction + Blur + Reminder 2
+            this.interventionLevel = 8; // Viewport shrink + padding + desaturation + zoom drift + friction + Blur + Reminder 3
         } else if (duration >= (9 / 12) * md) {
             this.interventionLevel = 7; // Viewport shrink + padding + desaturation + zoom drift + friction + Blur + Challenge 2
         } else if (duration >= (4 / 6) * md) {
@@ -262,6 +270,7 @@ class ScrollntTracker {
             case 2:
                 // Padding handled by checkPaddingCycle
                 this.applyDesaturation();
+                this.showReminder();
                 // Scroll friction temporarily disabled - needs better implementation
                 // this.applyScrollFriction();
                 this.challengeManager.checkChallengeTrigger(2);
@@ -289,6 +298,7 @@ class ScrollntTracker {
                 // Scroll friction temporarily disabled - needs better implementation
                 // this.applyScrollFriction();
                 this.challengeManager.checkChallengeTrigger(5);
+                this.showReminder();
                 break;
             case 6:
                 // Padding handled by checkPaddingCycle
@@ -316,6 +326,7 @@ class ScrollntTracker {
                 // Scroll friction temporarily disabled - needs better implementation
                 // this.applyScrollFriction();
                 this.challengeManager.checkChallengeTrigger(8);
+                this.showReminder();
                 break;
             case 9:
                 // Full Lockdown - all interventions
@@ -463,28 +474,15 @@ class ScrollntTracker {
     }
 
     showReminder() {
-        if (document.querySelector(".scrollnt-reminder")) return;
+        const sessionDuration = this.getSessionDuration();
 
-        const reminder = document.createElement("div");
-        reminder.className = "scrollnt-reminder";
-        reminder.innerHTML = `
-      <div class="scrollnt-reminder-content">
-        <h3>You've watched ${this.videoCount} videos</h3>
-        <p>Consider taking a break? 🌟</p>
-        <button class="scrollnt-dismiss">Dismiss</button>
-      </div>
-    `;
-        document.body.appendChild(reminder);
+        const reminderCount= chrome.storage.local.get(["reminderCount"]).then(data => data.reminderCount || 0) || 0;
+        if (reminderCount <= 2) {
+            this.reminderCount = reminderCount + 1;
+            chrome.storage.local.set({ reminderCount: this.reminderCount });
+        } 
 
-        reminder
-            .querySelector(".scrollnt-dismiss")
-            .addEventListener("click", () => {
-                reminder.remove();
-            });
-
-        setTimeout(() => {
-            if (reminder.parentNode) reminder.remove();
-        }, 10000);
+        this.reminderCardManager.show(this.videoCount, sessionDuration, this.reminderCount);
     }
 
     showChallenge() {
