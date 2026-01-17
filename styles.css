@@ -160,6 +160,7 @@ html.scrollnt-zoom-drift {
     transform: scale(1.05);
 }
 
+
 /* Challenge Modal (30 mins) */
 .scrollnt-challenge {
     position: fixed;
@@ -453,14 +454,17 @@ html.scrollnt-zoom-drift {
     position: fixed;
     top: 0;
     left: 0;
-    width: 100%;
-    height: 100%;
+    width: 100vw;
+    height: 100vh;
+    min-width: 100vw;
+    min-height: 100vh;
     background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
     z-index: 10000001;
     display: flex;
     align-items: center;
     justify-content: center;
     animation: scrollnt-fade-in 0.5s ease;
+    overflow: hidden;
 }
 
 .scrollnt-autolock-content {

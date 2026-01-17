@@ -18,19 +18,20 @@ class ScrollntTracker {
         this.pauseStartTime = null;
         this.challengeManager = new ChallengeManager(this);
         this.reminderCardManager = new ReminderCard();
+        this.autolockManager= new AutolockCard();
         this.loadUserSettings();
     }
 
     async loadUserSettings() {
         // Prompt for max session duration if not set
         const data = await chrome.storage.local.get(["maxDuration"]);
-        if (!data.maxDuration || data.maxDuration <= 0) {
+        if (!data.maxDuration || data.maxDuration < 1) {
             do {
-                let input = prompt("Set your max TikTok session duration in minutes (default 60, minimum 6):", "60");
+                let input = prompt("Set your max TikTok session duration in minutes (default 60):", "60");
                 let val = parseInt(input);
                 this.maxDuration = val;
                 await chrome.storage.local.set({ maxDuration: val });
-            } while (this.maxDuration <= 0);
+            } while (this.maxDuration < 1);
         } else {
             this.maxDuration = data.maxDuration;
         }
@@ -367,11 +368,7 @@ class ScrollntTracker {
                 break;
             case 9:
                 // Full Lockdown - all interventions
-                // Padding handled by checkPaddingCycle
-                // this.applyDesaturation();
-                // this.applyMicroZoomDrift(container);
-                // this.applyBlur(container);
-                // this.challengeManager.checkChallengeTrigger(9);
+                this.showAutoLock();
                 break;
         }
     }
@@ -543,11 +540,77 @@ class ScrollntTracker {
 
         const sessionDuration = this.getSessionDuration();
         const reminderCount = chrome.storage.local.get(["reminderCount"]).then(data => data.reminderCount || 0) || 0;
-        if (reminderCount <= 2) {
+        if (reminderCount <= 3) {
             this.reminderCount = reminderCount + 1;
             chrome.storage.local.set({ reminderCount: this.reminderCount });
         }
         this.reminderCardManager.show(this.videoCount, sessionDuration, this.reminderCount);
+    }
+
+    showChallenge() {
+        if (document.querySelector(".scrollnt-challenge")) return;
+
+        const challenge = document.createElement("div");
+        challenge.className = "scrollnt-challenge";
+        challenge.innerHTML = `
+      <div class="scrollnt-challenge-content">
+        <h2>Time for a Challenge! 🎯</h2>
+        <p>You've been scrolling for ${this.getSessionDuration()} minutes</p>
+        <p>Complete a quick challenge to continue:</p>
+        <div id="scrollnt-challenge-task"></div>
+        <button class="scrollnt-challenge-btn">Start Challenge</button>
+      </div>
+    `;
+        document.body.appendChild(challenge);
+
+        const selectedChallenge = this.loadRandomChallenge(challenge);
+
+        // Handle challenge button click
+        const startBtn = challenge.querySelector(".scrollnt-challenge-btn");
+        startBtn.addEventListener("click", () => {
+            if (selectedChallenge === "game") {
+                // Remove challenge modal and start game
+                challenge.remove();
+                this.startJumpingGame();
+            } else {
+                // For other challenges, just remove the modal
+                challenge.remove();
+            }
+        });
+    }
+
+    loadRandomChallenge(challengeElement) {
+        const challenges = [
+            // TESTING: Other challenges commented out
+            // { text: "Complete 3 rounds of CAPTCHA", type: "text" },
+            { text: "Play the cat jumping game 🐱", type: "game" },
+            // {
+            //     text: "Memory Test: Recall the last 3 videos you watched",
+            //     type: "text",
+            // },
+            // { text: "Solve: 15 × 7 = ?", type: "text" },
+            // {
+            //     text: "Watch yare yare, it's time to go to bed kekekeke",
+        ];
+
+        const randomChallenge =
+            challenges[Math.floor(Math.random() * challenges.length)];
+        const taskDiv = challengeElement.querySelector(
+            "#scrollnt-challenge-task",
+        );
+        taskDiv.innerHTML = `<p><strong>${randomChallenge.text}</strong></p>`;
+
+        return randomChallenge.type;
+    }
+
+    showAutoLock() {
+        if (document.querySelector('.scrollnt-autolock')) return;
+
+        const sessionDuration = this.getSessionDuration();
+        const reminderCount = chrome.storage.local.get(["reminderCount"]).then(data => data.reminderCount || 0) || 0;
+        this.autolockManager.show(this.videoCount, sessionDuration, reminderCount);
+
+        document.body.style.overflow = "hidden";
     }
 
     removePadding() {
@@ -615,26 +678,6 @@ class ScrollntTracker {
         this.catGame.start();
     }
 
-    showAutoLock() {
-        if (document.querySelector(".scrollnt-autolock")) return;
-
-        const lockScreen = document.createElement("div");
-        lockScreen.className = "scrollnt-autolock";
-        lockScreen.innerHTML = `
-            <div class="scrollnt-autolock-content">
-                <h2>🔒 Auto-Lock Activated</h2>
-                <p>You've been scrolling for 60 minutes.</p>
-                <p>Time to take a break! 🌙</p>
-                <div class="scrollnt-autolock-timer">
-                    <p>This session has ended.</p>
-                </div>
-            </div>
-        `;
-        document.body.appendChild(lockScreen);
-
-        // Disable scrolling
-        document.body.style.overflow = "hidden";
-    }
 }
 
 // Initialize when DOM is ready
