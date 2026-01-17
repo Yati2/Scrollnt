@@ -267,25 +267,20 @@ class ScrollntTracker {
         const md = this.maxDuration;
         const previousLevel = this.interventionLevel;
 
+        // 6 intervention levels (0-6)
         if (duration >= md) {
-            this.interventionLevel = 9; // Full Lockdown
+            this.interventionLevel = 6; // Auto Lock
         } else if (duration >= (5 / 6) * md) {
-            this.interventionLevel = 8; // Viewport shrink + padding + desaturation + zoom drift + Hue Rotation + Reminder 3
-        } else if (duration >= (9 / 12) * md) {
-            this.interventionLevel = 7; // Viewport shrink + padding + desaturation + zoom drift + Hue Rotation + Challenge 2
+            this.interventionLevel = 5; // Challenge 2 + all effects
         } else if (duration >= (4 / 6) * md) {
-            this.interventionLevel = 6; // Viewport shrink + padding + desaturation + zoom drift + Hue Rotation
-        } else if (duration >= (7 / 12) * md) {
-            this.interventionLevel = 5; // Viewport shrink + padding + desaturation + zoom drift + friction + Reminder 2
+            this.interventionLevel = 4; // Reminder + all effects
         } else if (duration >= (3 / 6) * md) {
-            this.interventionLevel = 4; // Viewport shrink + padding + desaturation + zoom drift + Challenge 1
-        } else if (duration >= (5 / 12) * md) {
-            this.interventionLevel = 3; // Viewport shrink + padding + desaturation + zoom drift
+            this.interventionLevel = 3; // Challenge 1 + drift + all effects
         } else if (duration >= (2 / 6) * md) {
-            this.interventionLevel = 2; // Viewport shrink + padding + desaturation + Reminder 1
+            this.interventionLevel = 2; // Tilt + Reminder + desaturation
         } else if (duration >= 0.5) {
             // TESTING: Trigger at 30 seconds instead of (1/6) * md
-            this.interventionLevel = 1; // Viewport shrink + padding
+            this.interventionLevel = 1; // Padding + shrink + desaturation
         } else {
             this.interventionLevel = 0;
         }
@@ -321,70 +316,49 @@ class ScrollntTracker {
         // Apply other interventions based on level
         switch (this.interventionLevel) {
             case 1:
-                // Case 1: padding cycle + viewport shrink (handled above)
-                console.log('[Scrollnt] Case 1: Padding cycle + Viewport shrink');
+                // Case 1: padding cycle + viewport shrink + desaturation
+                console.log('Case 1');
+                this.applyDesaturation("animated");
                 break;
 
             case 2:
-                // Case 2: tilt + padding cycle + viewport shrink + (reminder commented for now)
-                console.log('[Scrollnt] Case 2: Tilt + Padding + Shrink');
+                // Case 2: tilt + padding cycle + viewport shrink + desaturation
+                console.log('Case 2');
                 this.applyTiltVideo();
-                // this.showReminder(); // Commented as requested
+                this.applyDesaturation("animated");
+                this.showReminder();
                 break;
 
             case 3:
-                // Case 3: tilt + padding cycle + viewport shrink + micro zoom drift
-                console.log('[Scrollnt] Case 3: Tilt + Padding + Shrink + Micro Zoom Drift');
+                // Case 3: tilt + padding cycle + viewport shrink + micro zoom drift + desaturation
+                console.log('Case 3');
                 this.applyTiltVideo();
                 this.applyMicroZoomDrift();
+                this.applyDesaturation("animated");
+                this.challengeManager.checkChallengeTrigger(1);
                 break;
 
             case 4:
-                // Case 4: challenge + tilt + padding cycle + viewport shrink + micro zoom drift
-                console.log('[Scrollnt] Case 4: Challenge + Tilt + Padding + Shrink + Drift');
+                // Case 4: tilt + padding cycle + viewport shrink + micro zoom drift + desaturation + reminder + ui issue
+                console.log('Case 4');
                 this.applyTiltVideo();
                 this.applyMicroZoomDrift();
-                this.challengeManager.checkChallengeTrigger(4);
+                this.applyDesaturation("animated");
+                this.showReminder();
                 break;
 
             case 5:
-                // Case 5: desaturation (animated) + micro zoom drift + viewport shrink + padding cycle + tilt + reminder
-                console.log('[Scrollnt] Case 5: Desaturation + Drift + Shrink + Padding + Tilt + Reminder');
+                // Case 5: tilt + padding cycle + viewport shrink + micro zoom drift + desaturation + challenge + ui issue
+                console.log('Case 5');
                 this.applyTiltVideo();
                 this.applyMicroZoomDrift();
                 this.applyDesaturation("animated");
-                this.showReminder();
+                this.challengeManager.checkChallengeTrigger(2);
                 break;
 
             case 6:
-                // Case 6: desaturation (animated) + micro zoom drift + viewport shrink + padding cycle + tilt
-                console.log('[Scrollnt] Case 6: Desaturation + Drift + Shrink + Padding + Tilt');
-                this.applyTiltVideo();
-                this.applyMicroZoomDrift();
-                this.applyDesaturation("animated");
-                break;
-
-            case 7:
-                // Case 7: desaturation (animated) + micro zoom drift + viewport shrink + padding cycle + tilt + challenge
-                console.log('[Scrollnt] Case 7: Desaturation + Drift + Shrink + Padding + Tilt + Challenge');
-                this.applyTiltVideo();
-                this.applyMicroZoomDrift();
-                this.applyDesaturation("animated");
-                this.challengeManager.checkChallengeTrigger(7);
-                break;
-
-            case 8:
-                // Case 8: desaturation (animated) + micro zoom drift + viewport shrink + padding cycle + tilt + reminder 3
-                console.log('[Scrollnt] Case 8: Desaturation + Drift + Shrink + Padding + Tilt + Reminder');
-                this.applyTiltVideo();
-                this.applyMicroZoomDrift();
-                this.applyDesaturation("animated");
-                this.showReminder();
-                break;
-
-            case 9:
-                // Case 9: auto lock
-                console.log('[Scrollnt] Case 9: Auto Lock');
+                // Case 6: Auto Lock
+                console.log('Case 6');
                 this.showAutoLock();
                 break;
         }

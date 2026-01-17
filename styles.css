@@ -222,6 +222,203 @@ html.scrollnt-viewport-padding-bottom body {
 }
 
 /* ===================================================================
+   CHALLENGE MINI-GAMES STYLES (Math, Memory, Typing)
+   =================================================================== */
+
+/* Math Challenge */
+.math-challenge-container {
+    text-align: center;
+    color: white;
+}
+
+.math-challenge-container h3 {
+    margin: 0 0 15px 0;
+    font-size: 24px;
+    font-weight: 600;
+}
+
+.math-challenge-container p {
+    margin: 10px 0;
+    font-size: 16px;
+    opacity: 0.9;
+}
+
+.math-problem {
+    margin: 20px 0 !important;
+    font-size: 28px !important;
+    font-weight: 700 !important;
+}
+
+.math-input {
+    width: 100%;
+    max-width: 300px;
+    padding: 12px 20px;
+    margin: 15px 0;
+    font-size: 18px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    text-align: center;
+    transition: border-color 0.2s, background 0.2s;
+}
+
+.math-input:focus {
+    outline: none;
+    border-color: rgba(255, 255, 255, 0.6);
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.math-input::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.math-feedback {
+    margin-top: 15px;
+    font-size: 16px;
+    font-weight: 600;
+    min-height: 24px;
+}
+
+/* Memory Game */
+.memory-game-container {
+    text-align: center;
+    color: white;
+}
+
+.memory-game-container h3 {
+    margin: 0 0 15px 0;
+    font-size: 24px;
+    font-weight: 600;
+}
+
+.memory-game-container p {
+    margin: 10px 0;
+    font-size: 16px;
+    opacity: 0.9;
+}
+
+.memory-game-grid {
+    display: grid;
+    gap: 12px;
+    margin: 25px auto;
+    max-width: 240px;
+    justify-content: center;
+}
+
+.memory-game-button {
+    width: 70px;
+    height: 70px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.memory-game-button:hover:not(:disabled) {
+    transform: scale(1.05);
+    border-color: rgba(255, 255, 255, 0.6);
+}
+
+.memory-game-button:disabled {
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+.memory-game-button:active:not(:disabled) {
+    transform: scale(0.95);
+}
+
+.memory-game-status {
+    margin: 20px 0;
+    font-size: 18px;
+    font-weight: 600;
+    min-height: 30px;
+    color: white;
+}
+
+.memory-game-info {
+    margin-top: 15px;
+    font-size: 14px;
+    opacity: 0.8;
+}
+
+.memory-game-info p {
+    margin: 5px 0;
+}
+
+/* Typing Challenge */
+.typing-challenge-container {
+    text-align: center;
+    color: white;
+}
+
+.typing-challenge-container h3 {
+    margin: 0 0 15px 0;
+    font-size: 24px;
+    font-weight: 600;
+}
+
+.typing-challenge-container p {
+    margin: 10px 0;
+    font-size: 16px;
+    opacity: 0.9;
+}
+
+.typing-display {
+    margin: 20px 0;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    min-height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.typing-user-input {
+    font-size: 24px;
+    font-weight: 700;
+    font-family: 'Courier New', monospace;
+    color: white;
+    letter-spacing: 2px;
+}
+
+.typing-input {
+    width: 100%;
+    max-width: 300px;
+    padding: 12px 20px;
+    margin: 15px 0;
+    font-size: 18px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    text-align: center;
+    font-family: 'Courier New', monospace;
+    letter-spacing: 1px;
+    transition: border-color 0.2s, background 0.2s;
+}
+
+.typing-input:focus {
+    outline: none;
+    border-color: rgba(255, 255, 255, 0.6);
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.typing-input::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.typing-feedback {
+    margin-top: 15px;
+    font-size: 16px;
+    font-weight: 600;
+    min-height: 24px;
+}
+
+/* ===================================================================
    CHALLENGE MODAL (Cases 4, 7)
    =================================================================== */
 
@@ -521,6 +718,12 @@ html.scrollnt-viewport-shrink-3.scrollnt-zoom-drift.scrollnt-desaturate-animated
 .scrollnt-autolock,
 .scrollnt-autolock *,
 .scrollnt-reminder,
-.scrollnt-reminder * {
+.scrollnt-reminder *,
+.math-challenge-container,
+.math-challenge-container *,
+.memory-game-container,
+.memory-game-container *,
+.typing-challenge-container,
+.typing-challenge-container * {
     filter: none !important;
 }
