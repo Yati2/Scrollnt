@@ -37,6 +37,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             sessionStart: Date.now(),
             videoCount: 0,
             sessionDuration: 0,
+            maxDuration: 0,
         });
         sendResponse({ success: true });
     }
