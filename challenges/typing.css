@@ -1,0 +1,78 @@
+/* Typing Challenge Styles */
+.typing-challenge-container {
+    width: 100%;
+    max-width: 100%;
+    margin: 0 auto;
+    text-align: center;
+}
+
+.typing-challenge-container h3 {
+    margin: 0 0 8px 0;
+    font-size: 20px;
+    font-weight: 700;
+    color: white;
+}
+
+.typing-challenge-container p {
+    margin: 0 0 15px 0;
+    font-size: 14px;
+    opacity: 0.9;
+    color: white;
+}
+
+.typing-challenge-container strong {
+    color: white;
+}
+
+.typing-display {
+    margin: 20px 0;
+    font-size: 24px;
+    font-weight: 700;
+    color: white;
+    min-height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.typing-user-input {
+    color: white;
+    font-family: monospace;
+    letter-spacing: 2px;
+    min-height: 30px;
+    display: inline-block;
+}
+
+.typing-input {
+    width: 100%;
+    max-width: 300px;
+    padding: 12px;
+    margin: 15px 0;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    font-size: 16px;
+    text-align: center;
+    font-family: monospace;
+    letter-spacing: 2px;
+    transition: border-color 0.2s, background 0.2s;
+}
+
+.typing-input:focus {
+    outline: none;
+    border-color: rgba(255, 255, 255, 0.6);
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.typing-input::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.typing-feedback {
+    margin: 15px 0;
+    font-size: 16px;
+    font-weight: 600;
+    min-height: 24px;
+    transition: color 0.3s;
+}

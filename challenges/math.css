@@ -1,0 +1,74 @@
+/* Math Challenge Styles */
+.math-challenge-container {
+    width: 100%;
+    max-width: 100%;
+    margin: 0 auto;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.math-challenge-container h3 {
+    margin: 0 0 8px 0;
+    font-size: 20px;
+    font-weight: 700;
+    color: white;
+}
+
+.math-challenge-container p {
+    margin: 0 0 15px 0;
+    font-size: 14px;
+    opacity: 0.9;
+    color: white;
+}
+
+.math-problem {
+    margin: 20px 0;
+    font-size: 24px;
+    font-weight: 700;
+    color: white;
+}
+
+.math-problem strong {
+    color: white;
+}
+
+.math-input {
+    width: 100%;
+    max-width: 200px;
+    padding: 12px;
+    margin: 15px auto;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    font-size: 16px;
+    text-align: center;
+    display: block;
+    transition: border-color 0.2s, background 0.2s;
+}
+
+.math-input:focus {
+    outline: none;
+    border-color: rgba(255, 255, 255, 0.6);
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.math-input::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+#math-submit {
+    display: block;
+    margin: 15px auto;
+}
+
+.math-feedback {
+    margin: 15px 0;
+    font-size: 16px;
+    font-weight: 600;
+    min-height: 24px;
+    transition: color 0.3s;
+}

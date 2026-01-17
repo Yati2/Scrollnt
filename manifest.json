@@ -9,7 +9,7 @@
         {
             "matches": ["*://*.tiktok.com/*"],
             "js": ["scoldGPT.js",  "reminderCard.js", "catGame.js","challenges/memoryTest.js", "challenges/math.js", "challenges/typing.js", "challenges/captcha/mole/mole.js", "challenges/captcha/sarcasticAI/api.js", "challenges/captcha/sarcasticAI/index.js", "challenges/index.js", "content.js"],
-            "css": ["styles.css", "challenges/captcha/mole/mole.css","challenges/captcha/captcha.css", "challenges/captcha/sarcasticAI/sarcasticAI.css"],
+            "css": ["styles.css", "challenges/math.css", "challenges/memoryTest.css", "challenges/typing.css", "challenges/captcha/mole/mole.css","challenges/captcha/captcha.css", "challenges/captcha/sarcasticAI/sarcasticAI.css"],
 
             "run_at": "document_end"
         }

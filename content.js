@@ -45,23 +45,33 @@ class ScrollntTracker {
             this.startTracking();
         }
         // Listen for sessionPaused changes and start/stop tracking accordingly
-        chrome.storage.onChanged.addListener((changes, area) => {
-            if (area === 'local' && changes.sessionPaused) {
-                this.sessionPaused = changes.sessionPaused.newValue;
-                if (changes.pauseStartTime) {
-                    this.pauseStartTime = changes.pauseStartTime.newValue;
-                }
-                if (changes.sessionStart) {
-                    this.sessionStart = changes.sessionStart.newValue;
-                }
+        try {
+            if (chrome?.storage?.onChanged) {
+                chrome.storage.onChanged.addListener((changes, area) => {
+                    try {
+                        if (area === 'local' && changes.sessionPaused) {
+                            this.sessionPaused = changes.sessionPaused.newValue;
+                            if (changes.pauseStartTime) {
+                                this.pauseStartTime = changes.pauseStartTime.newValue;
+                            }
+                            if (changes.sessionStart) {
+                                this.sessionStart = changes.sessionStart.newValue;
+                            }
 
-                if (changes.sessionPaused.newValue === false) {
-                    this.startTracking();
-                } else if (changes.sessionPaused.newValue === true) {
-                    this.stopTracking();
-                }
+                            if (changes.sessionPaused.newValue === false) {
+                                this.startTracking();
+                            } else if (changes.sessionPaused.newValue === true) {
+                                this.stopTracking();
+                            }
+                        }
+                    } catch (error) {
+                        console.warn('[Scrollnt] Error in storage change listener:', error);
+                    }
+                });
             }
-        });
+        } catch (error) {
+            console.warn('[Scrollnt] Error setting up storage change listener:', error);
+        }
     }
 
     startTracking() {
@@ -160,50 +170,74 @@ class ScrollntTracker {
     }
 
     observeArticles() {
-        chrome.storage.local.get(["sessionPaused"], (data) => {
-            if (data.sessionPaused) return;
-            // Find all TikTok articles (each video is wrapped in an article)
-            const articles = document.querySelectorAll("article");
-            articles.forEach(article => {
-                if (!this.observedArticles.has(article)) {
-                    this.observedArticles.add(article);
-                    this.setupIntersectionObserver(article);
-
-                    // Check if article is already visible (in case page loaded with articles in view)
-                    const rect = article.getBoundingClientRect();
-                    const isVisible = rect.top < window.innerHeight && rect.bottom > 0;
-                    const visibleRatio = isVisible ? Math.min(1, (Math.min(rect.bottom, window.innerHeight) - Math.max(rect.top, 0)) / rect.height) : 0;
-
-                    if (visibleRatio >= 0.5 && !this.viewedArticles.has(article)) {
-                        // Article is already visible and meets threshold
-                        this.viewedArticles.add(article);
-                        this.videoCount++;
-                        this.saveSessionData();
-                        this.checkInterventionNeeded();
-                    }
+        try {
+            if (!chrome?.storage?.local) {
+                console.warn('[Scrollnt] Extension context invalidated, skipping storage access');
+                return;
+            }
+            chrome.storage.local.get(["sessionPaused"], (data) => {
+                if (chrome.runtime.lastError) {
+                    console.warn('[Scrollnt] Storage error:', chrome.runtime.lastError);
+                    return;
                 }
+                if (data?.sessionPaused) return;
+                // Find all TikTok articles (each video is wrapped in an article)
+                const articles = document.querySelectorAll("article");
+                articles.forEach(article => {
+                    if (!this.observedArticles.has(article)) {
+                        this.observedArticles.add(article);
+                        this.setupIntersectionObserver(article);
+
+                        // Check if article is already visible (in case page loaded with articles in view)
+                        const rect = article.getBoundingClientRect();
+                        const isVisible = rect.top < window.innerHeight && rect.bottom > 0;
+                        const visibleRatio = isVisible ? Math.min(1, (Math.min(rect.bottom, window.innerHeight) - Math.max(rect.top, 0)) / rect.height) : 0;
+
+                        if (visibleRatio >= 0.5 && !this.viewedArticles.has(article)) {
+                            // Article is already visible and meets threshold
+                            this.viewedArticles.add(article);
+                            this.videoCount++;
+                            this.saveSessionData();
+                            this.checkInterventionNeeded();
+                        }
+                    }
+                });
             });
-        });
+        } catch (error) {
+            console.warn('[Scrollnt] Error in observeArticles:', error);
+        }
     }
 
     setupIntersectionObserver(article) {
         if (!this.intersectionObserver) {
             this.intersectionObserver = new IntersectionObserver(
                 (entries) => {
-                    chrome.storage.local.get(["sessionPaused"], (data) => {
-                        if (data.sessionPaused) return;
-                        entries.forEach(entry => {
-                            if (entry.isIntersecting && !this.viewedArticles.has(entry.target)) {
-                                this.viewedArticles.add(entry.target);
-                                // Increment count instead of using Set size to preserve stored count
-                                this.videoCount++;
-                                this.saveSessionData();
-                                this.checkInterventionNeeded();
-                                // Optional: log for debugging
-                                console.log('[Scrollnt] Article viewed. Total viewed:', this.videoCount);
+                    try {
+                        if (!chrome?.storage?.local) {
+                            console.warn('[Scrollnt] Extension context invalidated, skipping storage access');
+                            return;
+                        }
+                        chrome.storage.local.get(["sessionPaused"], (data) => {
+                            if (chrome.runtime.lastError) {
+                                console.warn('[Scrollnt] Storage error:', chrome.runtime.lastError);
+                                return;
                             }
+                            if (data?.sessionPaused) return;
+                            entries.forEach(entry => {
+                                if (entry.isIntersecting && !this.viewedArticles.has(entry.target)) {
+                                    this.viewedArticles.add(entry.target);
+                                    // Increment count instead of using Set size to preserve stored count
+                                    this.videoCount++;
+                                    this.saveSessionData();
+                                    this.checkInterventionNeeded();
+                                    // Optional: log for debugging
+                                    console.log('[Scrollnt] Article viewed. Total viewed:', this.videoCount);
+                                }
+                            });
                         });
-                    });
+                    } catch (error) {
+                        console.warn('[Scrollnt] Error in intersection observer:', error);
+                    }
                 },
                 {
                     threshold: 0.5,
@@ -288,7 +322,7 @@ class ScrollntTracker {
                 break;
             case 2:
                 // Padding handled by checkPaddingCycle
-                this.applyDesaturation();
+                this.applyDesaturation(container);
                 this.showReminder();
                 // Scroll friction temporarily disabled - needs better implementation
                 // this.applyScrollFriction();
@@ -296,7 +330,7 @@ class ScrollntTracker {
                 break;
             case 3:
                 // Padding handled by checkPaddingCycle
-                this.applyDesaturation();
+                this.applyDesaturation(container);
                 this.applyMicroZoomDrift(container);
                 // Scroll friction temporarily disabled - needs better implementation
                 // this.applyScrollFriction();
@@ -304,7 +338,7 @@ class ScrollntTracker {
                 break;
             case 4:
                 // Padding handled by checkPaddingCycle
-                this.applyDesaturation();
+                this.applyDesaturation(container);
                 this.applyMicroZoomDrift(container);
                 // Scroll friction temporarily disabled - needs better implementation
                 // this.applyScrollFriction();
@@ -312,7 +346,7 @@ class ScrollntTracker {
                 break;
             case 5:
                 // Padding handled by checkPaddingCycle
-                this.applyDesaturation();
+                this.applyDesaturation(container);
                 this.applyMicroZoomDrift(container);
                 // Scroll friction temporarily disabled - needs better implementation
                 // this.applyScrollFriction();
@@ -321,7 +355,7 @@ class ScrollntTracker {
                 break;
             case 6:
                 // Padding handled by checkPaddingCycle
-                this.applyDesaturation();
+                this.applyDesaturation(container);
                 this.applyMicroZoomDrift(container);
                 this.applyBlur(container);
                 // Scroll friction temporarily disabled - needs better implementation
@@ -330,7 +364,7 @@ class ScrollntTracker {
                 break;
             case 7:
                 // Padding handled by checkPaddingCycle
-                this.applyDesaturation();
+                this.applyDesaturation(container);
                 this.applyMicroZoomDrift(container);
                 this.applyBlur(container);
                 // Scroll friction temporarily disabled - needs better implementation
@@ -339,7 +373,7 @@ class ScrollntTracker {
                 break;
             case 8:
                 // Padding handled by checkPaddingCycle
-                this.applyDesaturation();
+                this.applyDesaturation(container);
                 this.applyMicroZoomDrift(container);
                 this.applyBlur(container);
                 // Scroll friction temporarily disabled - needs better implementation
@@ -350,7 +384,7 @@ class ScrollntTracker {
             case 9:
                 // Full Lockdown - all interventions
                 // Padding handled by checkPaddingCycle
-                this.applyDesaturation();
+                this.applyDesaturation(container);
                 this.applyMicroZoomDrift(container);
                 this.applyBlur(container);
                 this.challengeManager.checkChallengeTrigger(9);
@@ -467,13 +501,19 @@ class ScrollntTracker {
         // This method is kept for consistency with the intervention structure
     }
 
-    applyDesaturation() {
-        // Use desaturate-1 (static) for case 2, desaturate-2 (disco) for case 5
-        if (this.interventionLevel === 5) {
-            document.documentElement.classList.add("scrollnt-desaturate-2");
-        } else {
-            document.documentElement.classList.add("scrollnt-desaturate-1");
-        }
+    applyDesaturation(element) {
+        const videoContainers = document.querySelectorAll('[class*="DivContainer"]');
+        const desaturateClass = this.interventionLevel === 5
+            ? "scrollnt-desaturate-video-2"
+            : "scrollnt-desaturate-video-1";
+
+        videoContainers.forEach(container => {
+            if (container.querySelector('video') && !container.classList.contains(desaturateClass)) {
+                // Remove the other desaturate class if present
+                container.classList.remove("scrollnt-desaturate-video-1", "scrollnt-desaturate-video-2");
+                container.classList.add(desaturateClass);
+            }
+        });
     }
 
     applyMicroZoomDrift(element) {
@@ -497,13 +537,31 @@ class ScrollntTracker {
         });
     }
 
-    showReminder() {
+    async showReminder() {
         const sessionDuration = this.getSessionDuration();
 
-        const reminderCount = chrome.storage.local.get(["reminderCount"]).then(data => data.reminderCount || 0) || 0;
-        if (reminderCount <= 2) {
-            this.reminderCount = reminderCount + 1;
-            chrome.storage.local.set({ reminderCount: this.reminderCount });
+        try {
+            if (!chrome?.storage?.local) {
+                console.warn('[Scrollnt] Extension context invalidated, using default reminder count');
+                this.reminderCount = 0;
+            } else {
+                const data = await chrome.storage.local.get(["reminderCount"]);
+                if (chrome.runtime.lastError) {
+                    console.warn('[Scrollnt] Storage error:', chrome.runtime.lastError);
+                    this.reminderCount = 0;
+                } else {
+                    const reminderCount = data?.reminderCount || 0;
+                    if (reminderCount <= 2) {
+                        this.reminderCount = reminderCount + 1;
+                        await chrome.storage.local.set({ reminderCount: this.reminderCount });
+                    } else {
+                        this.reminderCount = reminderCount;
+                    }
+                }
+            }
+        } catch (error) {
+            console.warn('[Scrollnt] Error getting reminder count:', error);
+            this.reminderCount = 0;
         }
 
         this.reminderCardManager.show(this.videoCount, sessionDuration, this.reminderCount);
@@ -573,7 +631,10 @@ class ScrollntTracker {
     }
 
     removeDesaturation() {
-        document.documentElement.classList.remove("scrollnt-desaturate-1", "scrollnt-desaturate-2");
+        const videoContainers = document.querySelectorAll('[class*="DivContainer"]');
+        videoContainers.forEach(container => {
+            container.classList.remove("scrollnt-desaturate-video-1", "scrollnt-desaturate-video-2");
+        });
     }
 
     removeInterventions() {
@@ -586,11 +647,10 @@ class ScrollntTracker {
             "scrollnt-viewport-shrink-1",
             "scrollnt-viewport-shrink-2",
             "scrollnt-viewport-shrink-3",
-            "scrollnt-desaturate-1",
-            "scrollnt-desaturate-2",
         );
         this.removePadding();
         this.removeBlur();
+        this.removeDesaturation();
         container.classList.remove(
             "scrollnt-zoom-drift",
         );
