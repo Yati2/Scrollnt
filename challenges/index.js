@@ -131,8 +131,7 @@ class ChallengeManager {
     }
 
     loadRandomChallenge(challengeElement) {
-        const challengeTypes = ['memory'];
-        // const challengeTypes = ['memory', 'math', 'typing', 'mole', 'sarcasticAI', 'youtubeWatch', 'catgame'];
+        const challengeTypes = ['memory', 'math', 'typing', 'mole', 'sarcasticAI', 'youtubeWatch', 'catgame'];
 
         const randomType = challengeTypes[Math.floor(Math.random() * challengeTypes.length)];
 
