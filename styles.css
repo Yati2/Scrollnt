@@ -35,10 +35,9 @@ html.scrollnt-viewport-padding-bottom {
 
 /* Level 2 & 3: Desaturation - Applied to HTML element */
 html.scrollnt-desaturate {
-    filter: saturate(0.50) contrast(0.50);
+    filter: saturate(0.5) contrast(0.5);
     transition: filter 1s ease;
 }
-
 
 /* Level 2: Micro Zoom Drift (20 mins) */
 .scrollnt-zoom-drift {
@@ -46,7 +45,6 @@ html.scrollnt-desaturate {
 }
 
 @keyframes scrollnt-drift {
-
     0%,
     100% {
         transform: scale(0.8);
@@ -192,4 +190,116 @@ html.scrollnt-desaturate {
 .scrollnt-sticky {
     scroll-behavior: auto !important;
     scroll-snap-type: none !important;
+}
+
+/* Jumping Game Styles */
+.scrollnt-game-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.95);
+    z-index: 10000000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: scrollnt-fade-in 0.3s ease;
+}
+
+.scrollnt-game-container {
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    padding: 30px;
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
+    text-align: center;
+}
+
+.scrollnt-game-header {
+    margin-bottom: 20px;
+}
+
+.scrollnt-game-header h2 {
+    margin: 0 0 10px 0;
+    font-size: 28px;
+    font-weight: 700;
+    color: #2c3e50;
+}
+
+.scrollnt-game-header p {
+    margin: 5px 0;
+    font-size: 16px;
+    color: #546e7a;
+}
+
+.scrollnt-game-stats {
+    margin: 15px 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #ff6b6b;
+}
+
+#game-canvas {
+    border: 4px solid #34495e;
+    border-radius: 12px;
+    background: #87ceeb;
+    cursor: pointer;
+    display: block;
+    margin: 0 auto;
+}
+
+.scrollnt-game-instructions {
+    margin-top: 15px;
+    font-size: 14px;
+    color: #546e7a;
+    font-style: italic;
+}
+
+.scrollnt-game-victory {
+    padding: 40px;
+    text-align: center;
+}
+
+.scrollnt-game-victory h2 {
+    margin: 0 0 15px 0;
+    font-size: 36px;
+    font-weight: 700;
+    color: #27ae60;
+}
+
+.scrollnt-game-victory p {
+    margin: 10px 0;
+    font-size: 18px;
+    color: #2c3e50;
+}
+
+.scrollnt-game-button {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    padding: 15px 40px;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    margin-top: 20px;
+    transition:
+        transform 0.2s,
+        box-shadow 0.2s;
+}
+
+.scrollnt-game-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+}
+
+@keyframes scrollnt-fade-in-game {
+    from {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
 }

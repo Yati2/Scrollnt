@@ -13,6 +13,8 @@ class ScrollntTracker {
         this.checkInterval = null;
         this.currentPaddingSide = null;
         this.lastPaddingCycleTime = 0; // Track when padding was last cycled (in minutes)
+        this.gameActive = false;
+        this.gameCompleted = false;
     }
 
     init() {
@@ -32,9 +34,11 @@ class ScrollntTracker {
             if (data.sessionStart) {
                 this.sessionStart = data.sessionStart;
                 this.videoCount = data.videoCount || 0;
-                console.log('[Scrollnt] Loaded session data:', {
-                    sessionStart: new Date(this.sessionStart).toLocaleTimeString(),
-                    videoCount: this.videoCount
+                console.log("[Scrollnt] Loaded session data:", {
+                    sessionStart: new Date(
+                        this.sessionStart,
+                    ).toLocaleTimeString(),
+                    videoCount: this.videoCount,
                 });
             } else {
                 await chrome.storage.local.set({
@@ -43,7 +47,7 @@ class ScrollntTracker {
                 });
             }
         } catch (error) {
-            console.warn('[Scrollnt] Error loading session data:', error);
+            console.warn("[Scrollnt] Error loading session data:", error);
             // Continue with default values
         }
     }
@@ -56,7 +60,7 @@ class ScrollntTracker {
                 lastUpdate: Date.now(),
             });
         } catch (error) {
-            console.warn('[Scrollnt] Error saving session data:', error);
+            console.warn("[Scrollnt] Error saving session data:", error);
         }
     }
 
@@ -95,15 +99,23 @@ class ScrollntTracker {
     observeArticles() {
         // Find all TikTok articles (each video is wrapped in an article)
         const articles = document.querySelectorAll("article");
-        articles.forEach(article => {
+        articles.forEach((article) => {
             if (!this.observedArticles.has(article)) {
                 this.observedArticles.add(article);
                 this.setupIntersectionObserver(article);
 
                 // Check if article is already visible (in case page loaded with articles in view)
                 const rect = article.getBoundingClientRect();
-                const isVisible = rect.top < window.innerHeight && rect.bottom > 0;
-                const visibleRatio = isVisible ? Math.min(1, (Math.min(rect.bottom, window.innerHeight) - Math.max(rect.top, 0)) / rect.height) : 0;
+                const isVisible =
+                    rect.top < window.innerHeight && rect.bottom > 0;
+                const visibleRatio = isVisible
+                    ? Math.min(
+                          1,
+                          (Math.min(rect.bottom, window.innerHeight) -
+                              Math.max(rect.top, 0)) /
+                              rect.height,
+                      )
+                    : 0;
 
                 if (visibleRatio >= 0.5 && !this.viewedArticles.has(article)) {
                     // Article is already visible and meets threshold
@@ -120,27 +132,32 @@ class ScrollntTracker {
         if (!this.intersectionObserver) {
             this.intersectionObserver = new IntersectionObserver(
                 (entries) => {
-                    entries.forEach(entry => {
-                        if (entry.isIntersecting && !this.viewedArticles.has(entry.target)) {
+                    entries.forEach((entry) => {
+                        if (
+                            entry.isIntersecting &&
+                            !this.viewedArticles.has(entry.target)
+                        ) {
                             this.viewedArticles.add(entry.target);
                             // Increment count instead of using Set size to preserve stored count
                             this.videoCount++;
                             this.saveSessionData();
                             this.checkInterventionNeeded();
                             // Optional: log for debugging
-                            console.log('[Scrollnt] Article viewed. Total viewed:', this.videoCount);
+                            console.log(
+                                "[Scrollnt] Article viewed. Total viewed:",
+                                this.videoCount,
+                            );
                         }
                     });
                 },
                 {
                     threshold: 0.5,
-                    rootMargin: '0px'
-                }
+                    rootMargin: "0px",
+                },
             );
         }
         this.intersectionObserver.observe(article);
     }
-
 
     getSessionDuration() {
         return Math.floor((Date.now() - this.sessionStart) / 1000 / 60); // minutes
@@ -148,6 +165,12 @@ class ScrollntTracker {
 
     checkInterventionNeeded() {
         const duration = this.getSessionDuration();
+
+        // Check for 30-minute jumping game intervention
+        if (duration >= 30 && !this.gameCompleted && !this.gameActive) {
+            this.startJumpingGame();
+            return;
+        }
 
         // Progressive intervention levels based on your specs
         if (duration >= 3) {
@@ -186,6 +209,7 @@ class ScrollntTracker {
                 this.applyViewportPadding();
                 this.applyDesaturation();
                 this.applyMicroZoomDrift(container);
+                this.showChallenge();
                 break;
             default:
                 this.removeInterventions();
@@ -197,7 +221,7 @@ class ScrollntTracker {
         document.documentElement.classList.remove(
             "scrollnt-viewport-shrink-1",
             "scrollnt-viewport-shrink-2",
-            "scrollnt-viewport-shrink-3"
+            "scrollnt-viewport-shrink-3",
         );
 
         // Apply the appropriate shrink level based on intervention level
@@ -214,10 +238,16 @@ class ScrollntTracker {
             // Cycle 0: 1.5-3.5 min, Cycle 1: 3.5-5.5 min, Cycle 2: 5.5-7.5 min, etc.
             const cycleStart = 1.5;
             const cycleDuration = 2.0;
-            const currentCycle = Math.floor((duration - cycleStart) / cycleDuration);
-            const lastCycle = this.lastPaddingCycleTime >= cycleStart
-                ? Math.floor((this.lastPaddingCycleTime - cycleStart) / cycleDuration)
-                : -1;
+            const currentCycle = Math.floor(
+                (duration - cycleStart) / cycleDuration,
+            );
+            const lastCycle =
+                this.lastPaddingCycleTime >= cycleStart
+                    ? Math.floor(
+                          (this.lastPaddingCycleTime - cycleStart) /
+                              cycleDuration,
+                      )
+                    : -1;
 
             // If we're in a new cycle, or haven't initialized yet, cycle the padding
             if (currentCycle > lastCycle || this.currentPaddingSide === null) {
@@ -236,21 +266,23 @@ class ScrollntTracker {
         // Remove all padding classes
         document.documentElement.classList.remove(
             "scrollnt-viewport-padding-top",
-            "scrollnt-viewport-padding-bottom"
+            "scrollnt-viewport-padding-bottom",
         );
 
         // Toggle between top and bottom
-        if (this.currentPaddingSide === 'top') {
-            this.currentPaddingSide = 'bottom';
+        if (this.currentPaddingSide === "top") {
+            this.currentPaddingSide = "bottom";
         } else {
-            this.currentPaddingSide = 'top';
+            this.currentPaddingSide = "top";
         }
 
         const paddingClass = `scrollnt-viewport-padding-${this.currentPaddingSide}`;
         document.documentElement.classList.add(paddingClass);
 
         const duration = this.getSessionDuration();
-        console.log(`[Scrollnt] Padding cycled to: ${this.currentPaddingSide} (at ${duration.toFixed(1)} minutes)`);
+        console.log(
+            `[Scrollnt] Padding cycled to: ${this.currentPaddingSide} (at ${duration.toFixed(1)} minutes)`,
+        );
     }
 
     applyViewportPadding() {
@@ -334,7 +366,7 @@ class ScrollntTracker {
     removePadding() {
         document.documentElement.classList.remove(
             "scrollnt-viewport-padding-top",
-            "scrollnt-viewport-padding-bottom"
+            "scrollnt-viewport-padding-bottom",
         );
     }
 
@@ -352,19 +384,292 @@ class ScrollntTracker {
             "scrollnt-viewport-shrink-1",
             "scrollnt-viewport-shrink-2",
             "scrollnt-viewport-shrink-3",
-            "scrollnt-desaturate"
+            "scrollnt-desaturate",
         );
         this.removePadding();
-        container.classList.remove(
-            "scrollnt-zoom-drift",
-            "scrollnt-blur",
-        );
+        container.classList.remove("scrollnt-zoom-drift", "scrollnt-blur");
     }
 
     startMonitoring() {
         this.checkInterval = setInterval(() => {
             this.checkInterventionNeeded();
         }, 30000); // Check every 30 seconds to catch 1.5 and 2-minute intervals accurately
+    }
+
+    startJumpingGame() {
+        if (this.gameActive || this.gameCompleted) return;
+
+        this.gameActive = true;
+        console.log("[Scrollnt] Starting jumping game at 30 minutes");
+
+        // Create game overlay
+        const gameContainer = document.createElement("div");
+        gameContainer.id = "scrollnt-jumping-game";
+        gameContainer.className = "scrollnt-game-overlay";
+
+        gameContainer.innerHTML = `
+            <div class="scrollnt-game-container">
+                <div class="scrollnt-game-header">
+                    <h2>🐱 Jump Out of the Scroll! 🐱</h2>
+                    <p>Help the cat jump over 3 platforms to unlock scrolling</p>
+                    <div class="scrollnt-game-stats">
+                        <span>Jumps: <span id="jump-count">0</span>/3</span>
+                    </div>
+                </div>
+                <canvas id="game-canvas" width="800" height="400"></canvas>
+                <div class="scrollnt-game-instructions">
+                    <p>Click or press SPACEBAR to jump</p>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(gameContainer);
+
+        // Initialize game
+        this.initGame();
+    }
+
+    initGame() {
+        const canvas = document.getElementById("game-canvas");
+        const ctx = canvas.getContext("2d");
+        const jumpCountEl = document.getElementById("jump-count");
+
+        // Game state
+        const game = {
+            cat: {
+                x: 100,
+                y: 300,
+                width: 60,
+                height: 60,
+                velocityY: 0,
+                gravity: 0.6,
+                jumpPower: -12,
+                isJumping: false,
+            },
+            platforms: [],
+            successfulJumps: 0,
+            gameSpeed: 3,
+            spawnTimer: 0,
+            spawnInterval: 100,
+            groundY: 340,
+        };
+
+        // Load cat images
+        const catImages = {
+            jumping: new Image(),
+            idle: new Image(),
+            win: new Image(),
+        };
+
+        // Use Pinkie Cat assets
+        const basePath = chrome.runtime.getURL(
+            "cats/Pinkie Cat Animations/Clothing/",
+        );
+        catImages.jumping.src = basePath + "pink rosado saltando .gif";
+        catImages.idle.src = basePath + "pink respirando - ropa.gif";
+        catImages.win.src = basePath + "pink volantin.gif";
+
+        let currentCatImage = catImages.idle;
+
+        // Create initial platform
+        game.platforms.push({
+            x: canvas.width,
+            y: game.groundY,
+            width: 100,
+            height: 20,
+            passed: false,
+        });
+
+        // Input handling
+        const jump = () => {
+            if (!game.cat.isJumping) {
+                game.cat.velocityY = game.cat.jumpPower;
+                game.cat.isJumping = true;
+                currentCatImage = catImages.jumping;
+            }
+        };
+
+        const handleClick = (e) => {
+            jump();
+        };
+
+        const handleKeyPress = (e) => {
+            if (e.code === "Space") {
+                e.preventDefault();
+                jump();
+            }
+        };
+
+        canvas.addEventListener("click", handleClick);
+        document.addEventListener("keydown", handleKeyPress);
+
+        // Game loop
+        const gameLoop = () => {
+            if (!this.gameActive) return;
+
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw background
+            ctx.fillStyle = "#87CEEB";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw ground
+            ctx.fillStyle = "#8B7355";
+            ctx.fillRect(
+                0,
+                game.groundY + game.cat.height,
+                canvas.width,
+                canvas.height - game.groundY - game.cat.height,
+            );
+
+            // Draw safe zone indicator
+            ctx.fillStyle = "rgba(144, 238, 144, 0.3)";
+            ctx.fillRect(0, 0, 150, canvas.height);
+            ctx.fillStyle = "#2d5016";
+            ctx.font = "16px Arial";
+            ctx.fillText("Safe Zone 🌿", 20, 30);
+
+            // Update cat physics
+            game.cat.velocityY += game.cat.gravity;
+            game.cat.y += game.cat.velocityY;
+
+            // Ground collision
+            if (game.cat.y >= game.groundY) {
+                game.cat.y = game.groundY;
+                game.cat.velocityY = 0;
+                game.cat.isJumping = false;
+                currentCatImage = catImages.idle;
+            }
+
+            // Draw cat
+            if (catImages.idle.complete) {
+                ctx.drawImage(
+                    currentCatImage,
+                    game.cat.x,
+                    game.cat.y,
+                    game.cat.width,
+                    game.cat.height,
+                );
+            } else {
+                // Fallback if images not loaded
+                ctx.fillStyle = "#FFB6C1";
+                ctx.fillRect(
+                    game.cat.x,
+                    game.cat.y,
+                    game.cat.width,
+                    game.cat.height,
+                );
+            }
+
+            // Spawn platforms
+            game.spawnTimer++;
+            if (
+                game.spawnTimer > game.spawnInterval &&
+                game.platforms.length < 3
+            ) {
+                game.platforms.push({
+                    x: canvas.width,
+                    y: game.groundY,
+                    width: 100,
+                    height: 20,
+                    passed: false,
+                });
+                game.spawnTimer = 0;
+            }
+
+            // Update and draw platforms
+            for (let i = game.platforms.length - 1; i >= 0; i--) {
+                const platform = game.platforms[i];
+                platform.x -= game.gameSpeed;
+
+                // Draw platform
+                ctx.fillStyle = "#654321";
+                ctx.fillRect(
+                    platform.x,
+                    platform.y,
+                    platform.width,
+                    platform.height,
+                );
+                ctx.fillStyle = "#90EE90";
+                ctx.fillRect(platform.x, platform.y - 5, platform.width, 5);
+
+                // Check if cat jumped over platform
+                if (
+                    !platform.passed &&
+                    platform.x + platform.width < game.cat.x
+                ) {
+                    platform.passed = true;
+                    game.successfulJumps++;
+                    jumpCountEl.textContent = game.successfulJumps;
+
+                    console.log(
+                        "[Scrollnt] Successful jump:",
+                        game.successfulJumps,
+                    );
+
+                    // Check win condition
+                    if (game.successfulJumps >= 3) {
+                        this.gameWon();
+                        canvas.removeEventListener("click", handleClick);
+                        document.removeEventListener("keydown", handleKeyPress);
+                        return;
+                    }
+                }
+
+                // Check collision (game over)
+                if (
+                    platform.x < game.cat.x + game.cat.width &&
+                    platform.x + platform.width > game.cat.x &&
+                    platform.y < game.cat.y + game.cat.height &&
+                    platform.y + platform.height > game.cat.y
+                ) {
+                    // Collision detected - reset
+                    game.successfulJumps = 0;
+                    jumpCountEl.textContent = game.successfulJumps;
+                    game.platforms = [];
+                    game.cat.y = game.groundY;
+                    game.cat.velocityY = 0;
+                    game.spawnTimer = 0;
+                    console.log("[Scrollnt] Hit platform - resetting");
+                }
+
+                // Remove off-screen platforms
+                if (platform.x + platform.width < 0) {
+                    game.platforms.splice(i, 1);
+                }
+            }
+
+            requestAnimationFrame(gameLoop);
+        };
+
+        gameLoop();
+    }
+
+    gameWon() {
+        console.log("[Scrollnt] Game won!");
+        this.gameActive = false;
+        this.gameCompleted = true;
+
+        const gameContainer = document.getElementById("scrollnt-jumping-game");
+        if (gameContainer) {
+            gameContainer.innerHTML = `
+                <div class="scrollnt-game-container">
+                    <div class="scrollnt-game-victory">
+                        <h2>🎉 You Did It! 🎉</h2>
+                        <p>The cat made it to safety!</p>
+                        <p>You can continue scrolling now.</p>
+                        <button id="close-game-btn" class="scrollnt-game-button">Continue</button>
+                    </div>
+                </div>
+            `;
+
+            document
+                .getElementById("close-game-btn")
+                .addEventListener("click", () => {
+                    gameContainer.remove();
+                });
+        }
     }
 }
 
