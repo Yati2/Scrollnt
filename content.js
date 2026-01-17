@@ -255,6 +255,7 @@ class ScrollntTracker {
         switch (this.interventionLevel) {
             case 1:
                 // Padding handled by checkPaddingCycle
+                this.challengeManager.checkChallengeTrigger(1);
                 break;
             case 2:
                 // Padding handled by checkPaddingCycle
@@ -269,6 +270,7 @@ class ScrollntTracker {
                 this.applyMicroZoomDrift(container);
                 // Scroll friction temporarily disabled - needs better implementation
                 // this.applyScrollFriction();
+                this.challengeManager.checkChallengeTrigger(3);
                 break;
             case 4:
                 // Padding handled by checkPaddingCycle
@@ -276,6 +278,7 @@ class ScrollntTracker {
                 this.applyMicroZoomDrift(container);
                 // Scroll friction temporarily disabled - needs better implementation
                 // this.applyScrollFriction();
+                this.challengeManager.checkChallengeTrigger(4);
                 break;
             case 5:
                 // Padding handled by checkPaddingCycle
@@ -292,6 +295,7 @@ class ScrollntTracker {
                 this.applyBlur(container);
                 // Scroll friction temporarily disabled - needs better implementation
                 // this.applyScrollFriction();
+                this.challengeManager.checkChallengeTrigger(6);
                 break;
             case 7:
                 // Padding handled by checkPaddingCycle
@@ -300,6 +304,7 @@ class ScrollntTracker {
                 this.applyBlur(container);
                 // Scroll friction temporarily disabled - needs better implementation
                 // this.applyScrollFriction();
+                this.challengeManager.checkChallengeTrigger(7);
                 break;
             case 8:
                 // Padding handled by checkPaddingCycle
@@ -316,6 +321,7 @@ class ScrollntTracker {
                 this.applyDesaturation();
                 this.applyMicroZoomDrift(container);
                 this.applyBlur(container);
+                this.challengeManager.checkChallengeTrigger(9);
                 break;
         }
     }
