@@ -163,7 +163,7 @@ class CatJumpingGame {
             const sizeVariation = 40 + Math.random() * 50; // Random size between 40-90px
             return {
                 x: x,
-                y: game.groundY, // Same Y position as cat (on the ground)
+                y: game.groundY + game.cat.height - sizeVariation, // Align obstacle base with ground
                 width: sizeVariation,
                 height: sizeVariation,
             };
