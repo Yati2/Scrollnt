@@ -164,17 +164,28 @@ class ScrollntTracker {
             if (data.sessionPaused) return;
             // Find all TikTok articles (each video is wrapped in an article)
             const articles = document.querySelectorAll("article");
-            articles.forEach(article => {
+            articles.forEach((article) => {
                 if (!this.observedArticles.has(article)) {
                     this.observedArticles.add(article);
                     this.setupIntersectionObserver(article);
 
                     // Check if article is already visible (in case page loaded with articles in view)
                     const rect = article.getBoundingClientRect();
-                    const isVisible = rect.top < window.innerHeight && rect.bottom > 0;
-                    const visibleRatio = isVisible ? Math.min(1, (Math.min(rect.bottom, window.innerHeight) - Math.max(rect.top, 0)) / rect.height) : 0;
+                    const isVisible =
+                        rect.top < window.innerHeight && rect.bottom > 0;
+                    const visibleRatio = isVisible
+                        ? Math.min(
+                              1,
+                              (Math.min(rect.bottom, window.innerHeight) -
+                                  Math.max(rect.top, 0)) /
+                                  rect.height,
+                          )
+                        : 0;
 
-                    if (visibleRatio >= 0.5 && !this.viewedArticles.has(article)) {
+                    if (
+                        visibleRatio >= 0.5 &&
+                        !this.viewedArticles.has(article)
+                    ) {
                         // Article is already visible and meets threshold
                         this.viewedArticles.add(article);
                         this.videoCount++;
@@ -192,15 +203,21 @@ class ScrollntTracker {
                 (entries) => {
                     chrome.storage.local.get(["sessionPaused"], (data) => {
                         if (data.sessionPaused) return;
-                        entries.forEach(entry => {
-                            if (entry.isIntersecting && !this.viewedArticles.has(entry.target)) {
+                        entries.forEach((entry) => {
+                            if (
+                                entry.isIntersecting &&
+                                !this.viewedArticles.has(entry.target)
+                            ) {
                                 this.viewedArticles.add(entry.target);
                                 // Increment count instead of using Set size to preserve stored count
                                 this.videoCount++;
                                 this.saveSessionData();
                                 this.checkInterventionNeeded();
                                 // Optional: log for debugging
-                                console.log('[Scrollnt] Article viewed. Total viewed:', this.videoCount);
+                                console.log(
+                                    "[Scrollnt] Article viewed. Total viewed:",
+                                    this.videoCount,
+                                );
                             }
                         });
                     });
@@ -253,7 +270,8 @@ class ScrollntTracker {
             this.interventionLevel = 3; // Viewport shrink + padding + desaturation + zoom drift
         } else if (duration >= (2 / 6) * md) {
             this.interventionLevel = 2; // Viewport shrink + padding + desaturation + Reminder 1
-        } else if (duration >= (1 / 6) * md) {
+        } else if (duration >= 0.5) {
+            // TESTING: Trigger at 30 seconds instead of (1/6) * md
             this.interventionLevel = 1; // Viewport shrink + padding
         } else {
             this.interventionLevel = 0;
@@ -386,17 +404,27 @@ class ScrollntTracker {
             // Calculate which cycle we're in (starting from when first intervention activates)
             const firstInterventionTime = md / 6; // First intervention at 1/6 of maxDuration
             if (duration >= firstInterventionTime) {
-                const timeSinceFirstIntervention = duration - firstInterventionTime;
-                const currentCycle = Math.floor(timeSinceFirstIntervention / cycleDuration);
-                const lastCycle = this.lastShrinkCycleTime >= firstInterventionTime
-                    ? Math.floor((this.lastShrinkCycleTime - firstInterventionTime) / cycleDuration)
-                    : -1;
+                const timeSinceFirstIntervention =
+                    duration - firstInterventionTime;
+                const currentCycle = Math.floor(
+                    timeSinceFirstIntervention / cycleDuration,
+                );
+                const lastCycle =
+                    this.lastShrinkCycleTime >= firstInterventionTime
+                        ? Math.floor(
+                              (this.lastShrinkCycleTime -
+                                  firstInterventionTime) /
+                                  cycleDuration,
+                          )
+                        : -1;
 
                 // If we're in a new cycle, advance to next shrink level
                 if (currentCycle > lastCycle) {
-                    this.currentShrinkLevel = ((this.currentShrinkLevel) % 3) + 1; // Cycle 1->2->3->1
+                    this.currentShrinkLevel = (this.currentShrinkLevel % 3) + 1; // Cycle 1->2->3->1
                     this.lastShrinkCycleTime = duration;
-                    console.log(`[Scrollnt] Shrink cycled to level ${this.currentShrinkLevel} (at ${duration.toFixed(1)} minutes)`);
+                    console.log(
+                        `[Scrollnt] Shrink cycled to level ${this.currentShrinkLevel} (at ${duration.toFixed(1)} minutes)`,
+                    );
                 }
             }
         } else {
@@ -420,10 +448,16 @@ class ScrollntTracker {
 
             // Calculate which cycle we're in (starting from first intervention)
             const timeSinceFirstIntervention = duration - firstInterventionTime;
-            const currentCycle = Math.floor(timeSinceFirstIntervention / cycleDuration);
-            const lastCycle = this.lastPaddingCycleTime >= firstInterventionTime
-                ? Math.floor((this.lastPaddingCycleTime - firstInterventionTime) / cycleDuration)
-                : -1;
+            const currentCycle = Math.floor(
+                timeSinceFirstIntervention / cycleDuration,
+            );
+            const lastCycle =
+                this.lastPaddingCycleTime >= firstInterventionTime
+                    ? Math.floor(
+                          (this.lastPaddingCycleTime - firstInterventionTime) /
+                              cycleDuration,
+                      )
+                    : -1;
 
             // If we're in a new cycle, or haven't initialized yet, cycle the padding
             if (currentCycle > lastCycle || this.currentPaddingSide === null) {
@@ -481,9 +515,14 @@ class ScrollntTracker {
     }
 
     applyBlur(element) {
-        const videoContainers = document.querySelectorAll('[class*="DivContainer"]');
-        videoContainers.forEach(container => {
-            if (container.querySelector('video') && !container.classList.contains("scrollnt-blur-video")) {
+        const videoContainers = document.querySelectorAll(
+            '[class*="DivContainer"]',
+        );
+        videoContainers.forEach((container) => {
+            if (
+                container.querySelector("video") &&
+                !container.classList.contains("scrollnt-blur-video")
+            ) {
                 container.classList.add("scrollnt-blur-video");
             }
         });
@@ -491,8 +530,10 @@ class ScrollntTracker {
 
     removeBlur() {
         // Remove blur from all video container elements
-        const videoContainers = document.querySelectorAll('[class*="DivContainer"]');
-        videoContainers.forEach(container => {
+        const videoContainers = document.querySelectorAll(
+            '[class*="DivContainer"]',
+        );
+        videoContainers.forEach((container) => {
             container.classList.remove("scrollnt-blur-video");
         });
     }
@@ -507,62 +548,6 @@ class ScrollntTracker {
             chrome.storage.local.set({ reminderCount: this.reminderCount });
         }
         this.reminderCardManager.show(this.videoCount, sessionDuration, this.reminderCount);
-    }
-
-    showChallenge() {
-        if (document.querySelector(".scrollnt-challenge")) return;
-
-        const challenge = document.createElement("div");
-        challenge.className = "scrollnt-challenge";
-        challenge.innerHTML = `
-      <div class="scrollnt-challenge-content">
-        <h2>Time for a Challenge! 🎯</h2>
-        <p>You've been scrolling for ${this.getSessionDuration()} minutes</p>
-        <p>Complete a quick challenge to continue:</p>
-        <div id="scrollnt-challenge-task"></div>
-        <button class="scrollnt-challenge-btn">Start Challenge</button>
-      </div>
-    `;
-        document.body.appendChild(challenge);
-
-        const selectedChallenge = this.loadRandomChallenge(challenge);
-
-        // Handle challenge button click
-        const startBtn = challenge.querySelector(".scrollnt-challenge-btn");
-        startBtn.addEventListener("click", () => {
-            if (selectedChallenge === "game") {
-                // Remove challenge modal and start game
-                challenge.remove();
-                this.startJumpingGame();
-            } else {
-                // For other challenges, just remove the modal
-                challenge.remove();
-            }
-        });
-    }
-
-    loadRandomChallenge(challengeElement) {
-        const challenges = [
-            // TESTING: Other challenges commented out
-            // { text: "Complete 3 rounds of CAPTCHA", type: "text" },
-            { text: "Play the cat jumping game 🐱", type: "game" },
-            // {
-            //     text: "Memory Test: Recall the last 3 videos you watched",
-            //     type: "text",
-            // },
-            // { text: "Solve: 15 × 7 = ?", type: "text" },
-            // {
-            //     text: "Watch yare yare, it's time to go to bed kekekeke",
-        ];
-
-        const randomChallenge =
-            challenges[Math.floor(Math.random() * challenges.length)];
-        const taskDiv = challengeElement.querySelector(
-            "#scrollnt-challenge-task",
-        );
-        taskDiv.innerHTML = `<p><strong>${randomChallenge.text}</strong></p>`;
-
-        return randomChallenge.type;
     }
 
     removePadding() {
@@ -591,9 +576,7 @@ class ScrollntTracker {
         );
         this.removePadding();
         this.removeBlur();
-        container.classList.remove(
-            "scrollnt-zoom-drift",
-        );
+        container.classList.remove("scrollnt-zoom-drift");
     }
 
     startMonitoring() {
@@ -601,10 +584,10 @@ class ScrollntTracker {
             if (!this.sessionPaused) {
                 this.checkInterventionNeeded();
             }
-        }, 30000); // Check every 30 seconds to catch 1.5 and 2-minute intervals accurately
+        }, 10000);
     }
 
-    startJumpingGame() {
+    startJumpingGame(challengeElement) {
         if (this.catGame || this.gameCompleted) return;
 
         // Remove all interventions while game is active
@@ -613,10 +596,19 @@ class ScrollntTracker {
         // Mark that game is running
         this.gameInProgress = true;
 
-        this.catGame = new CatJumpingGame(() => {
+        this.catGame = new CatJumpingGame(challengeElement, async () => {
             this.gameCompleted = true;
             this.catGame = null;
             this.gameInProgress = false;
+
+            // Mark challenge as completed via ChallengeManager
+            if (this.challengeManager.currentChallengeLevel !== undefined) {
+                this.challengeManager.completedLevels.add(
+                    this.challengeManager.currentChallengeLevel,
+                );
+                await this.challengeManager.saveCompletedLevels();
+            }
+
             // Reapply interventions after game completes
             this.applyIntervention();
         });

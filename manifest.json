@@ -8,9 +8,9 @@
     "content_scripts": [
         {
             "matches": ["*://*.tiktok.com/*"],
-            "js": ["scoldGPT.js",  "reminderCard.js", "catGame.js","challenges/memoryTest.js", "challenges/math.js", "challenges/typing.js", "challenges/captcha/mole/mole.js", "challenges/captcha/sarcasticAI/api.js", "challenges/captcha/sarcasticAI/index.js", "challenges/index.js", "challenges/youtubeWatch.js", "content.js"],
-            "css": ["styles.css", "challenges/captcha/mole/mole.css","challenges/captcha/captcha.css", "challenges/captcha/sarcasticAI/sarcasticAI.css"],
 
+            "js": ["scoldGPT.js",  "reminderCard.js", "challenges/catGame.js","challenges/memoryTest.js", "challenges/math.js", "challenges/typing.js", "challenges/captcha/mole/mole.js", "challenges/captcha/sarcasticAI/api.js", "challenges/captcha/sarcasticAI/index.js", "challenges/index.js", "challenges/youtubeWatch.js", "content.js"],
+            "css": ["styles.css", "challenges/captcha/mole/mole.css","challenges/captcha/captcha.css", "challenges/captcha/sarcasticAI/sarcasticAI.css"],
             "run_at": "document_end"
         }
     ],
@@ -32,7 +32,15 @@
     },
     "web_accessible_resources": [
         {
-            "resources": ["assets/mole/mole_sprite.png", "assets/mole/grass.jpeg","cats/**/*", "icons/*", "assets/mole/whacked_mole_sprite.png"],
+       
+            "resources": [
+                "assets/mole/mole_sprite.png",
+                "assets/mole/whacked_mole_sprite.png",
+                "assets/mole/grass.jpeg",
+                "assets/cats/**/**/*",
+                "assets/catgame/*",
+                "assets/icons/*"
+            ],
             "matches": ["*://*.tiktok.com/*"]
         }
     ]
