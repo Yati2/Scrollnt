@@ -40,6 +40,7 @@ document.getElementById("resetBtn").addEventListener("click", async () => {
         sessionStart: Date.now(),
         videoCount: 0,
         lastUpdate: Date.now(),
+        maxDuration: 0,
     });
 
     updateStats();
