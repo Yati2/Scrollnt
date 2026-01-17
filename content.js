@@ -14,6 +14,7 @@ class ScrollntTracker {
         this.currentPaddingSide = null;
         this.lastPaddingCycleTime = 0;
         this.lastShrinkCycleTime = 0;
+        this.challengeManager = new ChallengeManager(this);
         this.reminderCardManager = new ReminderCard();
         this.loadUserSettings();
     }
@@ -93,7 +94,7 @@ class ScrollntTracker {
                 });
             }
         } catch (error) {
-            console.warn('[Scrollnt] Error loading session data:', error);
+            console.warn("[Scrollnt] Error loading session data:", error);
             // Continue with default values
         }
     }
@@ -108,7 +109,7 @@ class ScrollntTracker {
                 sessionPaused: this.sessionPaused,
             });
         } catch (error) {
-            console.warn('[Scrollnt] Error saving session data:', error);
+            console.warn("[Scrollnt] Error saving session data:", error);
         }
     }
 
@@ -192,13 +193,12 @@ class ScrollntTracker {
                 },
                 {
                     threshold: 0.5,
-                    rootMargin: '0px'
-                }
+                    rootMargin: "0px",
+                },
             );
         }
         this.intersectionObserver.observe(article);
     }
-
 
     getSessionDuration() {
         if (this.sessionPaused) return 0;
@@ -214,6 +214,8 @@ class ScrollntTracker {
 
     checkInterventionNeeded() {
         if (this.sessionPaused) return;
+        // Don't apply interventions if challenge is currently showing
+        if (document.querySelector(".scrollnt-challenge")) return;
         const duration = this.getSessionDuration();
         const md = this.maxDuration;
         if (duration >= md) {
@@ -243,6 +245,9 @@ class ScrollntTracker {
     }
 
     applyIntervention() {
+        // Don't apply interventions while game is active
+        if (this.gameInProgress) return;
+
         const container =
             document.querySelector(
                 '[data-e2e="recommend-list-item-container"]',
@@ -260,26 +265,39 @@ class ScrollntTracker {
         switch (this.interventionLevel) {
             case 1:
                 // Padding handled by checkPaddingCycle
+                this.challengeManager.checkChallengeTrigger(1);
                 break;
             case 2:
                 // Padding handled by checkPaddingCycle
                 this.applyDesaturation();
                 this.showReminder();
+                // Scroll friction temporarily disabled - needs better implementation
+                // this.applyScrollFriction();
+                this.challengeManager.checkChallengeTrigger(2);
                 break;
             case 3:
                 // Padding handled by checkPaddingCycle
                 this.applyDesaturation();
                 this.applyMicroZoomDrift(container);
+                // Scroll friction temporarily disabled - needs better implementation
+                // this.applyScrollFriction();
+                this.challengeManager.checkChallengeTrigger(3);
                 break;
             case 4:
                 // Padding handled by checkPaddingCycle
                 this.applyDesaturation();
                 this.applyMicroZoomDrift(container);
+                // Scroll friction temporarily disabled - needs better implementation
+                // this.applyScrollFriction();
+                this.challengeManager.checkChallengeTrigger(4);
                 break;
             case 5:
                 // Padding handled by checkPaddingCycle
                 this.applyDesaturation();
                 this.applyMicroZoomDrift(container);
+                // Scroll friction temporarily disabled - needs better implementation
+                // this.applyScrollFriction();
+                this.challengeManager.checkChallengeTrigger(5);
                 this.showReminder();
                 break;
             case 6:
@@ -287,18 +305,27 @@ class ScrollntTracker {
                 this.applyDesaturation();
                 this.applyMicroZoomDrift(container);
                 this.applyBlur(container);
+                // Scroll friction temporarily disabled - needs better implementation
+                // this.applyScrollFriction();
+                this.challengeManager.checkChallengeTrigger(6);
                 break;
             case 7:
                 // Padding handled by checkPaddingCycle
                 this.applyDesaturation();
                 this.applyMicroZoomDrift(container);
                 this.applyBlur(container);
+                // Scroll friction temporarily disabled - needs better implementation
+                // this.applyScrollFriction();
+                this.challengeManager.checkChallengeTrigger(7);
                 break;
             case 8:
                 // Padding handled by checkPaddingCycle
                 this.applyDesaturation();
                 this.applyMicroZoomDrift(container);
                 this.applyBlur(container);
+                // Scroll friction temporarily disabled - needs better implementation
+                // this.applyScrollFriction();
+                this.challengeManager.checkChallengeTrigger(8);
                 this.showReminder();
                 break;
             case 9:
@@ -307,6 +334,7 @@ class ScrollntTracker {
                 this.applyDesaturation();
                 this.applyMicroZoomDrift(container);
                 this.applyBlur(container);
+                this.challengeManager.checkChallengeTrigger(9);
                 break;
         }
     }
@@ -318,7 +346,7 @@ class ScrollntTracker {
         document.documentElement.classList.remove(
             "scrollnt-viewport-shrink-1",
             "scrollnt-viewport-shrink-2",
-            "scrollnt-viewport-shrink-3"
+            "scrollnt-viewport-shrink-3",
         );
 
         // Apply the current shrink level (cycles through 1, 2, 3)
@@ -395,21 +423,23 @@ class ScrollntTracker {
         // Remove all padding classes
         document.documentElement.classList.remove(
             "scrollnt-viewport-padding-top",
-            "scrollnt-viewport-padding-bottom"
+            "scrollnt-viewport-padding-bottom",
         );
 
         // Toggle between top and bottom
-        if (this.currentPaddingSide === 'top') {
-            this.currentPaddingSide = 'bottom';
+        if (this.currentPaddingSide === "top") {
+            this.currentPaddingSide = "bottom";
         } else {
-            this.currentPaddingSide = 'top';
+            this.currentPaddingSide = "top";
         }
 
         const paddingClass = `scrollnt-viewport-padding-${this.currentPaddingSide}`;
         document.documentElement.classList.add(paddingClass);
 
         const duration = this.getSessionDuration();
-        console.log(`[Scrollnt] Padding cycled to: ${this.currentPaddingSide} (at ${duration.toFixed(1)} minutes)`);
+        console.log(
+            `[Scrollnt] Padding cycled to: ${this.currentPaddingSide} (at ${duration.toFixed(1)} minutes)`,
+        );
     }
 
     applyViewportPadding() {
@@ -471,15 +501,34 @@ class ScrollntTracker {
     `;
         document.body.appendChild(challenge);
 
-        this.loadRandomChallenge(challenge);
+        const selectedChallenge = this.loadRandomChallenge(challenge);
+
+        // Handle challenge button click
+        const startBtn = challenge.querySelector(".scrollnt-challenge-btn");
+        startBtn.addEventListener("click", () => {
+            if (selectedChallenge === "game") {
+                // Remove challenge modal and start game
+                challenge.remove();
+                this.startJumpingGame();
+            } else {
+                // For other challenges, just remove the modal
+                challenge.remove();
+            }
+        });
     }
 
     loadRandomChallenge(challengeElement) {
         const challenges = [
-            "Solve: 15 × 7 = ?",
-            'Type "productivity" backwards',
-            "Name 3 things you're grateful for today",
-            "Do 10 jumping jacks",
+            // TESTING: Other challenges commented out
+            // { text: "Complete 3 rounds of CAPTCHA", type: "text" },
+            { text: "Play the cat jumping game 🐱", type: "game" },
+            // {
+            //     text: "Memory Test: Recall the last 3 videos you watched",
+            //     type: "text",
+            // },
+            // { text: "Solve: 15 × 7 = ?", type: "text" },
+            // {
+            //     text: "Watch yare yare, it's time to go to bed kekekeke",
         ];
 
         const randomChallenge =
@@ -487,13 +536,15 @@ class ScrollntTracker {
         const taskDiv = challengeElement.querySelector(
             "#scrollnt-challenge-task",
         );
-        taskDiv.innerHTML = `<p><strong>${randomChallenge}</strong></p>`;
+        taskDiv.innerHTML = `<p><strong>${randomChallenge.text}</strong></p>`;
+
+        return randomChallenge.type;
     }
 
     removePadding() {
         document.documentElement.classList.remove(
             "scrollnt-viewport-padding-top",
-            "scrollnt-viewport-padding-bottom"
+            "scrollnt-viewport-padding-bottom",
         );
     }
 
@@ -511,7 +562,7 @@ class ScrollntTracker {
             "scrollnt-viewport-shrink-1",
             "scrollnt-viewport-shrink-2",
             "scrollnt-viewport-shrink-3",
-            "scrollnt-desaturate"
+            "scrollnt-desaturate",
         );
         this.removePadding();
         this.removeBlur();
@@ -526,6 +577,46 @@ class ScrollntTracker {
                 this.checkInterventionNeeded();
             }
         }, 30000); // Check every 30 seconds to catch 1.5 and 2-minute intervals accurately
+    }
+
+    startJumpingGame() {
+        if (this.catGame || this.gameCompleted) return;
+
+        // Remove all interventions while game is active
+        this.removeInterventions();
+
+        // Mark that game is running
+        this.gameInProgress = true;
+
+        this.catGame = new CatJumpingGame(() => {
+            this.gameCompleted = true;
+            this.catGame = null;
+            this.gameInProgress = false;
+            // Reapply interventions after game completes
+            this.applyIntervention();
+        });
+        this.catGame.start();
+    }
+
+    showAutoLock() {
+        if (document.querySelector(".scrollnt-autolock")) return;
+
+        const lockScreen = document.createElement("div");
+        lockScreen.className = "scrollnt-autolock";
+        lockScreen.innerHTML = `
+            <div class="scrollnt-autolock-content">
+                <h2>🔒 Auto-Lock Activated</h2>
+                <p>You've been scrolling for 60 minutes.</p>
+                <p>Time to take a break! 🌙</p>
+                <div class="scrollnt-autolock-timer">
+                    <p>This session has ended.</p>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(lockScreen);
+
+        // Disable scrolling
+        document.body.style.overflow = "hidden";
     }
 }
 
