@@ -26,17 +26,50 @@ html.scrollnt-viewport-shrink-3 {
 html.scrollnt-viewport-padding-top {
     padding-top: 15vh !important;
     transition: padding 0.5s ease;
+    overflow: hidden !important;
+    position: fixed !important;
+    width: 100% !important;
+    height: 100% !important;
+}
+
+html.scrollnt-viewport-padding-top body {
+    overflow: hidden !important;
+    position: fixed !important;
+    width: 100% !important;
+    height: 100% !important;
 }
 
 html.scrollnt-viewport-padding-bottom {
     padding-bottom: 15vh !important;
     transition: padding 0.5s ease;
+    overflow: hidden !important;
+    position: fixed !important;
+    width: 100% !important;
+    height: 100% !important;
+}
+
+html.scrollnt-viewport-padding-bottom body {
+    overflow: hidden !important;
+    position: fixed !important;
+    width: 100% !important;
+    height: 100% !important;
 }
 
 /* Level 2 & 3: Desaturation - Applied to HTML element */
 html.scrollnt-desaturate {
-    filter: saturate(0.50) contrast(0.50);
-    transition: filter 1s ease;
+    animation: scrollnt-desaturate-animation 1s ease infinite;
+}
+
+@keyframes scrollnt-desaturate-animation {
+
+    0%,
+    100% {
+        filter: saturate(4.00) contrast(4.00);
+    }
+
+    50% {
+        filter: saturate(0.50) contrast(0.50);
+    }
 }
 
 /* Level 3: Micro Zoom Drift */
@@ -203,4 +236,7 @@ html.scrollnt-zoom-drift {
 .scrollnt-sticky {
     scroll-behavior: auto !important;
     scroll-snap-type: none !important;
+    overscroll-behavior: contain !important;
+    /* Add slight resistance feel */
+    touch-action: pan-y !important;
 }
