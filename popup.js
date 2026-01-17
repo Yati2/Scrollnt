@@ -13,17 +13,18 @@ async function updateStats() {
 
     document.getElementById("duration").textContent = `${duration} min`;
     document.getElementById("videoCount").textContent = videoCount;
+    document.getElementById("maxDuration").textContent = duration;
 
     // Update status
     const statusEl = document.getElementById("status");
 
-    if (duration >= 30) {
-        statusEl.textContent = "🚨 Challenge level - Take a break!";
+    if (duration >= 45) {
+        statusEl.textContent = "🚨 Take a break!";
         statusEl.className = "status danger";
-    } else if (duration >= 20) {
+    } else if (duration >= 30) {
         statusEl.textContent = "⚠️ High usage - Consider stopping";
         statusEl.className = "status warning";
-    } else if (duration >= 10) {
+    } else if (duration >= 20) {
         statusEl.textContent = "⏰ Moderate usage detected";
         statusEl.className = "status warning";
     } else {

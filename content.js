@@ -6,6 +6,7 @@ class ScrollntTracker {
     viewedArticles = new Set();
     constructor() {
         this.sessionStart = Date.now();
+        this.maxSessionDuration = 60; // in minutes (default)
         this.videoCount = 0;
         this.swipeSpeed = 0;
         this.lastSwipeTime = 0;
@@ -13,6 +14,21 @@ class ScrollntTracker {
         this.checkInterval = null;
         this.currentPaddingSide = null;
         this.lastPaddingCycleTime = 0; // Track when padding was last cycled (in minutes)
+        this.loadUserSettings();
+    }
+
+    async loadUserSettings() {
+        // Prompt for max session duration if not set
+        const data = await chrome.storage.local.get(["maxSessionDuration"]);
+        if (!data.maxSessionDuration) {
+            let input = prompt("Set your max TikTok session duration in minutes (default 60):", "60");
+            let val = parseInt(input);
+            if (isNaN(val) || val <= 0) val = 60;
+            this.maxSessionDuration = val;
+            await chrome.storage.local.set({ maxSessionDuration: val });
+        } else {
+            this.maxSessionDuration = data.maxSessionDuration;
+        }
     }
 
     init() {
@@ -28,18 +44,22 @@ class ScrollntTracker {
             const data = await chrome.storage.local.get([
                 "sessionStart",
                 "videoCount",
+                "maxSessionDuration",
             ]);
             if (data.sessionStart) {
                 this.sessionStart = data.sessionStart;
                 this.videoCount = data.videoCount || 0;
+                if (data.maxSessionDuration) this.maxSessionDuration = data.maxSessionDuration;
                 console.log('[Scrollnt] Loaded session data:', {
                     sessionStart: new Date(this.sessionStart).toLocaleTimeString(),
-                    videoCount: this.videoCount
+                    videoCount: this.videoCount,
+                    maxSessionDuration: this.maxSessionDuration
                 });
             } else {
                 await chrome.storage.local.set({
                     sessionStart: this.sessionStart,
                     videoCount: 0,
+                    maxSessionDuration: this.maxSessionDuration,
                 });
             }
         } catch (error) {
@@ -54,6 +74,7 @@ class ScrollntTracker {
                 sessionStart: this.sessionStart,
                 videoCount: this.videoCount,
                 lastUpdate: Date.now(),
+                maxSessionDuration: this.maxSessionDuration,
             });
         } catch (error) {
             console.warn('[Scrollnt] Error saving session data:', error);
@@ -148,18 +169,28 @@ class ScrollntTracker {
 
     checkInterventionNeeded() {
         const duration = this.getSessionDuration();
-
-        // Progressive intervention levels based on your specs
-        if (duration >= 3) {
-            this.interventionLevel = 3; // Challenge level
-        } else if (duration >= 2) {
-            this.interventionLevel = 2; // Micro zoom drift + desaturation
-        } else if (duration >= 1) {
-            this.interventionLevel = 1; // Viewport shrink + desaturation
+        const md = this.maxSessionDuration;
+        if (duration >= md) {
+            this.interventionLevel = 9; // Full Lockdown
+        } else if (duration >= (5/6) * md) {
+            this.interventionLevel = 8; // Viewport shrink + padding + desaturation + zoom drift + friction + Blur + Reminder 2
+        } else if (duration >= (9/12) * md) {
+            this.interventionLevel = 7; // Viewport shrink + padding + desaturation + zoom drift + friction + Blur + Challenge 2
+        } else if (duration >= (4/6) * md) {
+            this.interventionLevel = 6; // Viewport shrink + padding + desaturation + zoom drift + friction + Blur
+        } else if (duration >= (7/12) * md) {
+            this.interventionLevel = 5; // Viewport shrink + padding + desaturation + zoom drift + friction + Reminder 2
+        } else if (duration >= (3/6) * md) {
+            this.interventionLevel = 4; // Viewport shrink + padding + desaturation + zoom drift + Challenge 1
+        } else if (duration >= (5/12) * md) {
+            this.interventionLevel = 3; // Viewport shrink + padding + desaturation + zoom drift
+        } else if (duration >= (2/6) * md) {
+            this.interventionLevel = 2; // Viewport shrink + padding + desaturation + Reminder 1
+        } else if (duration >= (1/6) * md) {
+            this.interventionLevel = 1; // Viewport shrink + padding
         } else {
             this.interventionLevel = 0;
         }
-
         this.applyIntervention();
         this.checkPaddingCycle();
     }
