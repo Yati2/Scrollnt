@@ -2,6 +2,8 @@
 // Tracks user behavior and applies progressive discouragement
 
 class ScrollntTracker {
+        observedArticles = new Set();
+        viewedArticles = new Set();
     constructor() {
         this.sessionStart = Date.now();
         this.videoCount = 0;
@@ -15,6 +17,7 @@ class ScrollntTracker {
         console.log("Scrollnt initialized on TikTok");
         this.loadSessionData();
         this.trackScrollBehavior();
+        this.observeArticles();
         this.startMonitoring();
     }
 
@@ -63,9 +66,9 @@ class ScrollntTracker {
             { passive: true },
         );
 
-        // Track video count (observes DOM changes for new videos)
+        // Track new articles (videos) added to DOM
         const observer = new MutationObserver(() => {
-            this.detectNewVideo();
+            this.observeArticles();
         });
 
         observer.observe(document.body, {
@@ -74,15 +77,41 @@ class ScrollntTracker {
         });
     }
 
-    detectNewVideo() {
-        // TikTok-specific video detection
-        const videos = document.querySelectorAll("video");
-        if (videos.length > this.videoCount) {
-            this.videoCount = videos.length;
-            this.saveSessionData();
-            this.checkInterventionNeeded();
-        }
+    observeArticles() {
+        // Find all TikTok articles (each video is wrapped in an article)
+        const articles = document.querySelectorAll("article");
+        articles.forEach(article => {
+            if (!this.observedArticles.has(article)) {
+                this.observedArticles.add(article);
+                this.setupIntersectionObserver(article);
+            }
+        });
     }
+
+    setupIntersectionObserver(article) {
+        if (!this.intersectionObserver) {
+            this.intersectionObserver = new IntersectionObserver(
+                (entries) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting && !this.viewedArticles.has(entry.target)) {
+                            this.viewedArticles.add(entry.target);
+                            this.videoCount = this.viewedArticles.size;
+                            this.saveSessionData();
+                            this.checkInterventionNeeded();
+                            // Optional: log for debugging
+                            console.log('[Scrollnt] Article viewed. Total viewed:', this.videoCount);
+                        }
+                    });
+                },
+                {
+                    threshold: 0.6 // Considered viewed when 60% visible
+                }
+            );
+        }
+        this.intersectionObserver.observe(article);
+    }
+
+    // detectNewVideo() is now obsolete
 
     getSessionDuration() {
         return Math.floor((Date.now() - this.sessionStart) / 1000 / 60); // minutes
@@ -92,11 +121,11 @@ class ScrollntTracker {
         const duration = this.getSessionDuration();
 
         // Progressive intervention levels based on your specs
-        if (duration >= 30) {
+        if (duration >= 3) {
             this.interventionLevel = 3; // Challenge level
-        } else if (duration >= 20) {
+        } else if (duration >= 2) {
             this.interventionLevel = 2; // Micro zoom drift + desaturation
-        } else if (duration >= 10) {
+        } else if (duration >= 1) {
             this.interventionLevel = 1; // Viewport shrink + desaturation
         } else {
             this.interventionLevel = 0;
