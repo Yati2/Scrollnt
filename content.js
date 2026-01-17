@@ -6,7 +6,7 @@ class ScrollntTracker {
     viewedArticles = new Set();
     constructor() {
         this.sessionStart = Date.now();
-        this.maxSessionDuration = 60; // in minutes (default)
+        this.maxDuration = 60; // in minutes (default)
         this.videoCount = 0;
         this.swipeSpeed = 0;
         this.lastSwipeTime = 0;
@@ -19,15 +19,15 @@ class ScrollntTracker {
 
     async loadUserSettings() {
         // Prompt for max session duration if not set
-        const data = await chrome.storage.local.get(["maxSessionDuration"]);
-        if (!data.maxSessionDuration) {
+        const data = await chrome.storage.local.get(["maxDuration"]);
+        if (!data.maxDuration || data.maxDuration <= 0) {
             let input = prompt("Set your max TikTok session duration in minutes (default 60):", "60");
             let val = parseInt(input);
             if (isNaN(val) || val <= 0) val = 60;
-            this.maxSessionDuration = val;
-            await chrome.storage.local.set({ maxSessionDuration: val });
+            this.maxDuration = val;
+            await chrome.storage.local.set({ maxDuration: val });
         } else {
-            this.maxSessionDuration = data.maxSessionDuration;
+            this.maxDuration = data.maxDuration;
         }
     }
 
@@ -44,22 +44,22 @@ class ScrollntTracker {
             const data = await chrome.storage.local.get([
                 "sessionStart",
                 "videoCount",
-                "maxSessionDuration",
+                "maxDuration",
             ]);
             if (data.sessionStart) {
                 this.sessionStart = data.sessionStart;
                 this.videoCount = data.videoCount || 0;
-                if (data.maxSessionDuration) this.maxSessionDuration = data.maxSessionDuration;
+                if (data.maxDuration) this.maxDuration = data.maxDuration;
                 console.log('[Scrollnt] Loaded session data:', {
                     sessionStart: new Date(this.sessionStart).toLocaleTimeString(),
                     videoCount: this.videoCount,
-                    maxSessionDuration: this.maxSessionDuration
+                    maxDuration: this.maxDuration
                 });
             } else {
                 await chrome.storage.local.set({
                     sessionStart: this.sessionStart,
                     videoCount: 0,
-                    maxSessionDuration: this.maxSessionDuration,
+                    maxDuration: this.maxDuration,
                 });
             }
         } catch (error) {
@@ -74,7 +74,7 @@ class ScrollntTracker {
                 sessionStart: this.sessionStart,
                 videoCount: this.videoCount,
                 lastUpdate: Date.now(),
-                maxSessionDuration: this.maxSessionDuration,
+                maxDuration: this.maxDuration,
             });
         } catch (error) {
             console.warn('[Scrollnt] Error saving session data:', error);
@@ -169,7 +169,7 @@ class ScrollntTracker {
 
     checkInterventionNeeded() {
         const duration = this.getSessionDuration();
-        const md = this.maxSessionDuration;
+        const md = this.maxDuration;
         if (duration >= md) {
             this.interventionLevel = 9; // Full Lockdown
         } else if (duration >= (5/6) * md) {

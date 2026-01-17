@@ -9,7 +9,8 @@ chrome.runtime.onInstalled.addListener(() => {
         sessionStart: Date.now(),
         videoCount: 0,
         totalTimeSpent: 0,
-    });
+        maxDuration: 0, // default max duration in minutes
+});
 });
 
 // Listen for messages from content script
@@ -19,12 +20,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             videoCount: request.videoCount,
             sessionDuration: request.sessionDuration,
             lastUpdate: Date.now(),
+            maxDuration: request.maxDuration,
         });
     }
 
     if (request.action === "getStats") {
         chrome.storage.local.get(
-            ["videoCount", "sessionStart", "sessionDuration"],
+            ["videoCount", "sessionStart", "sessionDuration", "maxDuration"],
             (data) => {
                 sendResponse(data);
             },
