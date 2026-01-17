@@ -14,6 +14,8 @@ class ScrollntTracker {
         this.currentPaddingSide = null;
         this.lastPaddingCycleTime = 0;
         this.lastShrinkCycleTime = 0;
+        this.sessionPaused = false;
+        this.pauseStartTime = null;
         this.challengeManager = new ChallengeManager(this);
         this.reminderCardManager = new ReminderCard();
         this.loadUserSettings();
@@ -23,7 +25,7 @@ class ScrollntTracker {
         // Prompt for max session duration if not set
         const data = await chrome.storage.local.get(["maxDuration"]);
         if (!data.maxDuration || data.maxDuration <= 0) {
-            do{
+            do {
                 let input = prompt("Set your max TikTok session duration in minutes (default 60, minimum 6):", "60");
                 let val = parseInt(input);
                 this.maxDuration = val;
@@ -45,6 +47,14 @@ class ScrollntTracker {
         // Listen for sessionPaused changes and start/stop tracking accordingly
         chrome.storage.onChanged.addListener((changes, area) => {
             if (area === 'local' && changes.sessionPaused) {
+                this.sessionPaused = changes.sessionPaused.newValue;
+                if (changes.pauseStartTime) {
+                    this.pauseStartTime = changes.pauseStartTime.newValue;
+                }
+                if (changes.sessionStart) {
+                    this.sessionStart = changes.sessionStart.newValue;
+                }
+
                 if (changes.sessionPaused.newValue === false) {
                     this.startTracking();
                 } else if (changes.sessionPaused.newValue === true) {
@@ -74,28 +84,31 @@ class ScrollntTracker {
                 "videoCount",
                 "maxDuration",
                 "sessionPaused",
+                "pauseStartTime",
             ]);
             if (data.sessionStart) {
                 this.sessionStart = data.sessionStart;
                 this.videoCount = data.videoCount || 0;
                 if (data.maxDuration) this.maxDuration = data.maxDuration;
-                // console.log('[Scrollnt] Loaded session data:', {
-                //     sessionStart: new Date(this.sessionStart).toLocaleTimeString(),
-                //     videoCount: this.videoCount,
-                //     maxDuration: this.maxDuration,
-                //     sessionPaused: data.sessionPaused || false
-                // });
+                this.sessionPaused = data.sessionPaused || false;
+                this.pauseStartTime = data.pauseStartTime || null;
+
+                // If session is paused but pauseStartTime is not set, set it now
+                if (this.sessionPaused && !this.pauseStartTime) {
+                    this.pauseStartTime = Date.now();
+                    this.saveSessionData();
+                }
             } else {
                 await chrome.storage.local.set({
                     sessionStart: this.sessionStart,
                     videoCount: 0,
                     maxDuration: this.maxDuration,
                     sessionPaused: true,
+                    pauseStartTime: null,
                 });
             }
         } catch (error) {
             console.warn("[Scrollnt] Error loading session data:", error);
-            // Continue with default values
         }
     }
 
@@ -107,6 +120,7 @@ class ScrollntTracker {
                 lastUpdate: Date.now(),
                 maxDuration: this.maxDuration,
                 sessionPaused: this.sessionPaused,
+                pauseStartTime: this.pauseStartTime,
             });
         } catch (error) {
             console.warn("[Scrollnt] Error saving session data:", error);
@@ -201,10 +215,15 @@ class ScrollntTracker {
     }
 
     getSessionDuration() {
-        if (this.sessionPaused) return 0;
+        let elapsedTime = Date.now() - this.sessionStart;
 
-        const durationCalc= (Date.now() - this.sessionStart) / 1000 / 60;
-        
+        // If currently paused, subtract the current pause period
+        if (this.sessionPaused && this.pauseStartTime) {
+            elapsedTime -= (Date.now() - this.pauseStartTime);
+        }
+
+        const durationCalc = elapsedTime / 1000 / 60; // minutes
+
         if (parseInt(durationCalc) <= 0 || this.maxDuration < 6) {
             return durationCalc;
         } else {
@@ -476,11 +495,11 @@ class ScrollntTracker {
     showReminder() {
         const sessionDuration = this.getSessionDuration();
 
-        const reminderCount= chrome.storage.local.get(["reminderCount"]).then(data => data.reminderCount || 0) || 0;
+        const reminderCount = chrome.storage.local.get(["reminderCount"]).then(data => data.reminderCount || 0) || 0;
         if (reminderCount <= 2) {
             this.reminderCount = reminderCount + 1;
             chrome.storage.local.set({ reminderCount: this.reminderCount });
-        } 
+        }
 
         this.reminderCardManager.show(this.videoCount, sessionDuration, this.reminderCount);
     }
