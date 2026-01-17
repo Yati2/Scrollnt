@@ -111,7 +111,6 @@ class ScrollntTracker {
         this.intersectionObserver.observe(article);
     }
 
-    // detectNewVideo() is now obsolete
 
     getSessionDuration() {
         return Math.floor((Date.now() - this.sessionStart) / 1000 / 60); // minutes
