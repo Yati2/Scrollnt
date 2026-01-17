@@ -24,12 +24,12 @@ html.scrollnt-viewport-shrink-3 {
 
 /* Uneven Padding - Top/Bottom only, cycles every 2 minutes starting at 1.5 minutes */
 html.scrollnt-viewport-padding-top {
-    padding-top: 10vh !important;
+    padding-top: 15vh !important;
     transition: padding 0.5s ease;
 }
 
 html.scrollnt-viewport-padding-bottom {
-    padding-bottom: 10vh !important;
+    padding-bottom: 15vh !important;
     transition: padding 0.5s ease;
 }
 
@@ -39,9 +39,9 @@ html.scrollnt-desaturate {
     transition: filter 1s ease;
 }
 
-
-/* Level 2: Micro Zoom Drift (20 mins) */
-.scrollnt-zoom-drift {
+/* Level 3: Micro Zoom Drift */
+/* Note: This works with the existing scale transform at level 3 (0.6) */
+html.scrollnt-zoom-drift {
     animation: scrollnt-drift 4s ease-in-out infinite;
 }
 
@@ -49,18 +49,29 @@ html.scrollnt-desaturate {
 
     0%,
     100% {
-        transform: scale(0.8);
+        transform: scale(0.58);
     }
 
     50% {
-        transform: scale(0.812);
+        transform: scale(0.609);
     }
 }
 
-/* Level 2: Blur Videos */
-.scrollnt-blur video {
-    filter: blur(3px) !important;
-    transition: filter 1s ease;
+/* Blur Videos */
+.scrollnt-blur-video {
+    animation: scrollnt-blur-animation 1s ease infinite;
+}
+
+@keyframes scrollnt-blur-animation {
+
+    0%,
+    100% {
+        filter: blur(3px) !important;
+    }
+
+    50% {
+        filter: blur(0px) !important;
+    }
 }
 
 /* Reminder Popup (20 mins) */

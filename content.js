@@ -13,7 +13,8 @@ class ScrollntTracker {
         this.interventionLevel = 0;
         this.checkInterval = null;
         this.currentPaddingSide = null;
-        this.lastPaddingCycleTime = 0; // Track when padding was last cycled (in minutes)
+        this.lastPaddingCycleTime = 0;
+        this.lastShrinkCycleTime = 0;
         this.loadUserSettings();
     }
 
@@ -172,27 +173,28 @@ class ScrollntTracker {
         const md = this.maxDuration;
         if (duration >= md) {
             this.interventionLevel = 9; // Full Lockdown
-        } else if (duration >= (5/6) * md) {
+        } else if (duration >= (5 / 6) * md) {
             this.interventionLevel = 8; // Viewport shrink + padding + desaturation + zoom drift + friction + Blur + Reminder 2
-        } else if (duration >= (9/12) * md) {
+        } else if (duration >= (9 / 12) * md) {
             this.interventionLevel = 7; // Viewport shrink + padding + desaturation + zoom drift + friction + Blur + Challenge 2
-        } else if (duration >= (4/6) * md) {
+        } else if (duration >= (4 / 6) * md) {
             this.interventionLevel = 6; // Viewport shrink + padding + desaturation + zoom drift + friction + Blur
-        } else if (duration >= (7/12) * md) {
+        } else if (duration >= (7 / 12) * md) {
             this.interventionLevel = 5; // Viewport shrink + padding + desaturation + zoom drift + friction + Reminder 2
-        } else if (duration >= (3/6) * md) {
+        } else if (duration >= (3 / 6) * md) {
             this.interventionLevel = 4; // Viewport shrink + padding + desaturation + zoom drift + Challenge 1
-        } else if (duration >= (5/12) * md) {
+        } else if (duration >= (5 / 12) * md) {
             this.interventionLevel = 3; // Viewport shrink + padding + desaturation + zoom drift
-        } else if (duration >= (2/6) * md) {
+        } else if (duration >= (2 / 6) * md) {
             this.interventionLevel = 2; // Viewport shrink + padding + desaturation + Reminder 1
-        } else if (duration >= (1/6) * md) {
+        } else if (duration >= (1 / 6) * md) {
             this.interventionLevel = 1; // Viewport shrink + padding
         } else {
             this.interventionLevel = 0;
         }
         this.applyIntervention();
         this.checkPaddingCycle();
+        this.checkShrinkCycle();
     }
 
     applyIntervention() {
@@ -201,29 +203,69 @@ class ScrollntTracker {
                 '[data-e2e="recommend-list-item-container"]',
             ) || document.body;
 
+        if (this.interventionLevel === 0) {
+            this.removeInterventions();
+            return;
+        }
+
+        // Apply viewport shrink in all intervention phases (cycles through 1, 2, 3)
+        this.applyViewportShrink();
+
+        // Apply other interventions based on level
         switch (this.interventionLevel) {
             case 1:
-                this.applyViewportShrink();
-                this.applyViewportPaddingTop();
-                this.applyDesaturation();
+                // Padding handled by checkPaddingCycle
                 break;
             case 2:
-                this.applyViewportShrink();
-                this.applyViewportPadding();
+                // Padding handled by checkPaddingCycle
                 this.applyDesaturation();
                 break;
             case 3:
-                this.applyViewportShrink();
-                this.applyViewportPadding();
+                // Padding handled by checkPaddingCycle
                 this.applyDesaturation();
                 this.applyMicroZoomDrift(container);
                 break;
-            default:
-                this.removeInterventions();
+            case 4:
+                // Padding handled by checkPaddingCycle
+                this.applyDesaturation();
+                this.applyMicroZoomDrift(container);
+                break;
+            case 5:
+                // Padding handled by checkPaddingCycle
+                this.applyDesaturation();
+                this.applyMicroZoomDrift(container);
+                break;
+            case 6:
+                // Padding handled by checkPaddingCycle
+                this.applyDesaturation();
+                this.applyMicroZoomDrift(container);
+                this.applyBlur(container);
+                break;
+            case 7:
+                // Padding handled by checkPaddingCycle
+                this.applyDesaturation();
+                this.applyMicroZoomDrift(container);
+                this.applyBlur(container);
+                break;
+            case 8:
+                // Padding handled by checkPaddingCycle
+                this.applyDesaturation();
+                this.applyMicroZoomDrift(container);
+                this.applyBlur(container);
+                break;
+            case 9:
+                // Full Lockdown - all interventions
+                // Padding handled by checkPaddingCycle
+                this.applyDesaturation();
+                this.applyMicroZoomDrift(container);
+                this.applyBlur(container);
+                break;
         }
     }
 
     applyViewportShrink() {
+        this.checkShrinkCycle();
+
         // Remove all shrink classes first
         document.documentElement.classList.remove(
             "scrollnt-viewport-shrink-1",
@@ -231,23 +273,61 @@ class ScrollntTracker {
             "scrollnt-viewport-shrink-3"
         );
 
-        // Apply the appropriate shrink level based on intervention level
-        const shrinkClass = `scrollnt-viewport-shrink-${this.interventionLevel}`;
+        // Apply the current shrink level (cycles through 1, 2, 3)
+        const shrinkClass = `scrollnt-viewport-shrink-${this.currentShrinkLevel}`;
         document.documentElement.classList.add(shrinkClass);
+    }
+
+    checkShrinkCycle() {
+        const duration = this.getSessionDuration();
+        const md = this.maxDuration;
+
+        // Only cycle if we're in an intervention phase (interventionLevel >= 1)
+        if (this.interventionLevel >= 1) {
+            // Calculate cycle duration based on intervention phase
+            // Cycle every 1/12 of maxDuration (e.g., every 5 minutes for 60 min max)
+            const cycleDuration = md / 12;
+
+            // Calculate which cycle we're in (starting from when first intervention activates)
+            const firstInterventionTime = md / 6; // First intervention at 1/6 of maxDuration
+            if (duration >= firstInterventionTime) {
+                const timeSinceFirstIntervention = duration - firstInterventionTime;
+                const currentCycle = Math.floor(timeSinceFirstIntervention / cycleDuration);
+                const lastCycle = this.lastShrinkCycleTime >= firstInterventionTime
+                    ? Math.floor((this.lastShrinkCycleTime - firstInterventionTime) / cycleDuration)
+                    : -1;
+
+                // If we're in a new cycle, advance to next shrink level
+                if (currentCycle > lastCycle) {
+                    this.currentShrinkLevel = ((this.currentShrinkLevel) % 3) + 1; // Cycle 1->2->3->1
+                    this.lastShrinkCycleTime = duration;
+                    console.log(`[Scrollnt] Shrink cycled to level ${this.currentShrinkLevel} (at ${duration.toFixed(1)} minutes)`);
+                }
+            }
+        } else {
+            // Reset to level 1 when no intervention is active
+            this.currentShrinkLevel = 1;
+            this.lastShrinkCycleTime = 0;
+        }
     }
 
     checkPaddingCycle() {
         const duration = this.getSessionDuration();
+        const md = this.maxDuration;
 
-        // Padding starts at 1.5 minutes and cycles every 2 minutes
-        if (duration >= 1.5) {
-            // Calculate which 2-minute cycle we're in (starting from 1.5 minutes)
-            // Cycle 0: 1.5-3.5 min, Cycle 1: 3.5-5.5 min, Cycle 2: 5.5-7.5 min, etc.
-            const cycleStart = 1.5;
-            const cycleDuration = 2.0;
-            const currentCycle = Math.floor((duration - cycleStart) / cycleDuration);
-            const lastCycle = this.lastPaddingCycleTime >= cycleStart
-                ? Math.floor((this.lastPaddingCycleTime - cycleStart) / cycleDuration)
+        // Padding starts when first intervention activates (1/6 of maxDuration)
+        const firstInterventionTime = md / 6;
+
+        if (duration >= firstInterventionTime) {
+            // Calculate cycle duration based on maxDuration
+            // Cycle every 1/12 of maxDuration (e.g., every 5 minutes for 60 min max)
+            const cycleDuration = md / 12;
+
+            // Calculate which cycle we're in (starting from first intervention)
+            const timeSinceFirstIntervention = duration - firstInterventionTime;
+            const currentCycle = Math.floor(timeSinceFirstIntervention / cycleDuration);
+            const lastCycle = this.lastPaddingCycleTime >= firstInterventionTime
+                ? Math.floor((this.lastPaddingCycleTime - firstInterventionTime) / cycleDuration)
                 : -1;
 
             // If we're in a new cycle, or haven't initialized yet, cycle the padding
@@ -255,8 +335,8 @@ class ScrollntTracker {
                 this.cyclePadding();
                 this.lastPaddingCycleTime = duration;
             }
-        } else if (duration < 1.5) {
-            // Remove padding if we're below 1.5 minutes
+        } else if (duration < firstInterventionTime) {
+            // Remove padding if we're below first intervention time
             this.removePadding();
             this.currentPaddingSide = null;
             this.lastPaddingCycleTime = 0;
@@ -299,7 +379,20 @@ class ScrollntTracker {
     }
 
     applyBlur(element) {
-        element.classList.add("scrollnt-blur");
+        const videoContainers = document.querySelectorAll('[class*="DivContainer"]');
+        videoContainers.forEach(container => {
+            if (container.querySelector('video') && !container.classList.contains("scrollnt-blur-video")) {
+                container.classList.add("scrollnt-blur-video");
+            }
+        });
+    }
+
+    removeBlur() {
+        // Remove blur from all video container elements
+        const videoContainers = document.querySelectorAll('[class*="DivContainer"]');
+        videoContainers.forEach(container => {
+            container.classList.remove("scrollnt-blur-video");
+        });
     }
 
     showReminder() {
@@ -386,9 +479,9 @@ class ScrollntTracker {
             "scrollnt-desaturate"
         );
         this.removePadding();
+        this.removeBlur();
         container.classList.remove(
             "scrollnt-zoom-drift",
-            "scrollnt-blur",
         );
     }
 
