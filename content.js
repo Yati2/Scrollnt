@@ -1,6 +1,5 @@
 // Scrollnt - Content Script for TikTok
 // Tracks user behavior and applies progressive discouragement
-
 class ScrollntTracker {
     observedArticles = new Set();
     viewedArticles = new Set();
@@ -15,7 +14,10 @@ class ScrollntTracker {
         this.currentPaddingSide = null;
         this.lastPaddingCycleTime = 0;
         this.lastShrinkCycleTime = 0;
+        this.sessionPaused = false;
+        this.pauseStartTime = null;
         this.challengeManager = new ChallengeManager(this);
+        this.reminderCardManager = new ReminderCard();
         this.loadUserSettings();
     }
 
@@ -23,14 +25,12 @@ class ScrollntTracker {
         // Prompt for max session duration if not set
         const data = await chrome.storage.local.get(["maxDuration"]);
         if (!data.maxDuration || data.maxDuration <= 0) {
-            let input = prompt(
-                "Set your max TikTok session duration in minutes (default 60):",
-                "60",
-            );
-            let val = parseInt(input);
-            if (isNaN(val) || val <= 0) val = 60;
-            this.maxDuration = val;
-            await chrome.storage.local.set({ maxDuration: val });
+            do {
+                let input = prompt("Set your max TikTok session duration in minutes (default 60, minimum 6):", "60");
+                let val = parseInt(input);
+                this.maxDuration = val;
+                await chrome.storage.local.set({ maxDuration: val });
+            } while (this.maxDuration <= 0);
         } else {
             this.maxDuration = data.maxDuration;
         }
@@ -46,7 +46,15 @@ class ScrollntTracker {
         }
         // Listen for sessionPaused changes and start/stop tracking accordingly
         chrome.storage.onChanged.addListener((changes, area) => {
-            if (area === "local" && changes.sessionPaused) {
+            if (area === 'local' && changes.sessionPaused) {
+                this.sessionPaused = changes.sessionPaused.newValue;
+                if (changes.pauseStartTime) {
+                    this.pauseStartTime = changes.pauseStartTime.newValue;
+                }
+                if (changes.sessionStart) {
+                    this.sessionStart = changes.sessionStart.newValue;
+                }
+
                 if (changes.sessionPaused.newValue === false) {
                     this.startTracking();
                 } else if (changes.sessionPaused.newValue === true) {
@@ -76,28 +84,31 @@ class ScrollntTracker {
                 "videoCount",
                 "maxDuration",
                 "sessionPaused",
+                "pauseStartTime",
             ]);
             if (data.sessionStart) {
                 this.sessionStart = data.sessionStart;
                 this.videoCount = data.videoCount || 0;
                 if (data.maxDuration) this.maxDuration = data.maxDuration;
-                // console.log('[Scrollnt] Loaded session data:', {
-                //     sessionStart: new Date(this.sessionStart).toLocaleTimeString(),
-                //     videoCount: this.videoCount,
-                //     maxDuration: this.maxDuration,
-                //     sessionPaused: data.sessionPaused || false
-                // });
+                this.sessionPaused = data.sessionPaused || false;
+                this.pauseStartTime = data.pauseStartTime || null;
+
+                // If session is paused but pauseStartTime is not set, set it now
+                if (this.sessionPaused && !this.pauseStartTime) {
+                    this.pauseStartTime = Date.now();
+                    this.saveSessionData();
+                }
             } else {
                 await chrome.storage.local.set({
                     sessionStart: this.sessionStart,
                     videoCount: 0,
                     maxDuration: this.maxDuration,
                     sessionPaused: true,
+                    pauseStartTime: null,
                 });
             }
         } catch (error) {
             console.warn("[Scrollnt] Error loading session data:", error);
-            // Continue with default values
         }
     }
 
@@ -109,6 +120,7 @@ class ScrollntTracker {
                 lastUpdate: Date.now(),
                 maxDuration: this.maxDuration,
                 sessionPaused: this.sessionPaused,
+                pauseStartTime: this.pauseStartTime,
             });
         } catch (error) {
             console.warn("[Scrollnt] Error saving session data:", error);
@@ -220,8 +232,20 @@ class ScrollntTracker {
     }
 
     getSessionDuration() {
-        if (this.sessionPaused) return 0;
-        return Math.floor((Date.now() - this.sessionStart) / 1000 / 60); // minutes
+        let elapsedTime = Date.now() - this.sessionStart;
+
+        // If currently paused, subtract the current pause period
+        if (this.sessionPaused && this.pauseStartTime) {
+            elapsedTime -= (Date.now() - this.pauseStartTime);
+        }
+
+        const durationCalc = elapsedTime / 1000 / 60; // minutes
+
+        if (parseInt(durationCalc) <= 0 || this.maxDuration < 6) {
+            return durationCalc;
+        } else {
+            return parseInt(durationCalc);
+        }
     }
 
     checkInterventionNeeded() {
@@ -233,7 +257,7 @@ class ScrollntTracker {
         if (duration >= md) {
             this.interventionLevel = 9; // Full Lockdown
         } else if (duration >= (5 / 6) * md) {
-            this.interventionLevel = 8; // Viewport shrink + padding + desaturation + zoom drift + friction + Blur + Reminder 2
+            this.interventionLevel = 8; // Viewport shrink + padding + desaturation + zoom drift + friction + Blur + Reminder 3
         } else if (duration >= (9 / 12) * md) {
             this.interventionLevel = 7; // Viewport shrink + padding + desaturation + zoom drift + friction + Blur + Challenge 2
         } else if (duration >= (4 / 6) * md) {
@@ -278,14 +302,15 @@ class ScrollntTracker {
         switch (this.interventionLevel) {
             case 1:
                 // Padding handled by checkPaddingCycle
-                this.challengeManager.checkChallengeTrigger(1);
+                // this.challengeManager.checkChallengeTrigger(1);
                 break;
             case 2:
                 // Padding handled by checkPaddingCycle
                 this.applyDesaturation();
+                this.showReminder();
                 // Scroll friction temporarily disabled - needs better implementation
                 // this.applyScrollFriction();
-                this.challengeManager.checkChallengeTrigger(2);
+                // this.challengeManager.checkChallengeTrigger(2);
                 break;
             case 3:
                 // Padding handled by checkPaddingCycle
@@ -293,7 +318,7 @@ class ScrollntTracker {
                 this.applyMicroZoomDrift(container);
                 // Scroll friction temporarily disabled - needs better implementation
                 // this.applyScrollFriction();
-                this.challengeManager.checkChallengeTrigger(3);
+                // this.challengeManager.checkChallengeTrigger(3);
                 break;
             case 4:
                 // Padding handled by checkPaddingCycle
@@ -309,7 +334,8 @@ class ScrollntTracker {
                 this.applyMicroZoomDrift(container);
                 // Scroll friction temporarily disabled - needs better implementation
                 // this.applyScrollFriction();
-                this.challengeManager.checkChallengeTrigger(5);
+                // this.challengeManager.checkChallengeTrigger(5);
+                this.showReminder();
                 break;
             case 6:
                 // Padding handled by checkPaddingCycle
@@ -318,7 +344,7 @@ class ScrollntTracker {
                 this.applyBlur(container);
                 // Scroll friction temporarily disabled - needs better implementation
                 // this.applyScrollFriction();
-                this.challengeManager.checkChallengeTrigger(6);
+                // this.challengeManager.checkChallengeTrigger(6);
                 break;
             case 7:
                 // Padding handled by checkPaddingCycle
@@ -336,15 +362,16 @@ class ScrollntTracker {
                 this.applyBlur(container);
                 // Scroll friction temporarily disabled - needs better implementation
                 // this.applyScrollFriction();
-                this.challengeManager.checkChallengeTrigger(8);
+                // this.challengeManager.checkChallengeTrigger(8);
+                this.showReminder();
                 break;
             case 9:
                 // Full Lockdown - all interventions
                 // Padding handled by checkPaddingCycle
-                this.applyDesaturation();
-                this.applyMicroZoomDrift(container);
-                this.applyBlur(container);
-                this.challengeManager.checkChallengeTrigger(9);
+                // this.applyDesaturation();
+                // this.applyMicroZoomDrift(container);
+                // this.applyBlur(container);
+                // this.challengeManager.checkChallengeTrigger(9);
                 break;
         }
     }
@@ -475,7 +502,12 @@ class ScrollntTracker {
     }
 
     applyDesaturation() {
-        document.documentElement.classList.add("scrollnt-desaturate");
+        // Use desaturate-1 (static) for case 2, desaturate-2 (disco) for case 5
+        if (this.interventionLevel === 5) {
+            document.documentElement.classList.add("scrollnt-desaturate-2");
+        } else {
+            document.documentElement.classList.add("scrollnt-desaturate-1");
+        }
     }
 
     applyMicroZoomDrift(element) {
@@ -507,28 +539,15 @@ class ScrollntTracker {
     }
 
     showReminder() {
-        if (document.querySelector(".scrollnt-reminder")) return;
+        if (document.querySelector('.scrollnt-reminder')) return;
 
-        const reminder = document.createElement("div");
-        reminder.className = "scrollnt-reminder";
-        reminder.innerHTML = `
-      <div class="scrollnt-reminder-content">
-        <h3>You've watched ${this.videoCount} videos</h3>
-        <p>Consider taking a break? 🌟</p>
-        <button class="scrollnt-dismiss">Dismiss</button>
-      </div>
-    `;
-        document.body.appendChild(reminder);
-
-        reminder
-            .querySelector(".scrollnt-dismiss")
-            .addEventListener("click", () => {
-                reminder.remove();
-            });
-
-        setTimeout(() => {
-            if (reminder.parentNode) reminder.remove();
-        }, 10000);
+        const sessionDuration = this.getSessionDuration();
+        const reminderCount = chrome.storage.local.get(["reminderCount"]).then(data => data.reminderCount || 0) || 0;
+        if (reminderCount <= 2) {
+            this.reminderCount = reminderCount + 1;
+            chrome.storage.local.set({ reminderCount: this.reminderCount });
+        }
+        this.reminderCardManager.show(this.videoCount, sessionDuration, this.reminderCount);
     }
 
     removePadding() {
@@ -539,7 +558,7 @@ class ScrollntTracker {
     }
 
     removeDesaturation() {
-        document.documentElement.classList.remove("scrollnt-desaturate");
+        document.documentElement.classList.remove("scrollnt-desaturate-1", "scrollnt-desaturate-2");
     }
 
     removeInterventions() {
@@ -552,7 +571,8 @@ class ScrollntTracker {
             "scrollnt-viewport-shrink-1",
             "scrollnt-viewport-shrink-2",
             "scrollnt-viewport-shrink-3",
-            "scrollnt-desaturate",
+            "scrollnt-desaturate-1",
+            "scrollnt-desaturate-2",
         );
         this.removePadding();
         this.removeBlur();

@@ -55,8 +55,14 @@ html.scrollnt-viewport-padding-bottom body {
     height: 100% !important;
 }
 
-/* Level 2 & 3: Desaturation - Applied to HTML element */
-html.scrollnt-desaturate {
+/* Desaturation 1 (Case 2): Static desaturation - Applied to HTML element */
+html.scrollnt-desaturate-1 {
+    filter: saturate(0.6) contrast(0.6);
+    transition: filter 0.5s ease;
+}
+
+/* Desaturation 2 (Case 5): Disco animation - Applied to HTML element */
+html.scrollnt-desaturate-2 {
     animation: scrollnt-desaturate-animation 1s ease infinite;
 }
 
@@ -79,6 +85,7 @@ html.scrollnt-zoom-drift {
 }
 
 @keyframes scrollnt-drift {
+
     0%,
     100% {
         transform: scale(0.58);
@@ -325,7 +332,7 @@ html.scrollnt-zoom-drift {
 .memory-game-info p {
     margin: 5px 0;
 }
-}
+
 
 /* Jumping Game Styles */
 .scrollnt-game-overlay {
@@ -434,6 +441,7 @@ html.scrollnt-zoom-drift {
         opacity: 0;
         transform: scale(0.9);
     }
+
     to {
         opacity: 1;
         transform: scale(1);

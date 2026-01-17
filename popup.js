@@ -7,19 +7,28 @@ async function updateStats() {
         "lastUpdate",
         "maxDuration",
         "sessionPaused",
+        "pauseStartTime",
     ]);
 
     const sessionStart = data.sessionStart || Date.now();
-    const duration = Math.floor((Date.now() - sessionStart) / 1000 / 60);
+    const pauseStartTime = data.pauseStartTime || null;
+    const sessionPaused = data.sessionPaused || false;
+
+    // Calculate duration accounting for paused time
+    let elapsedTime = Date.now() - sessionStart;
+    if (sessionPaused && pauseStartTime) {
+        elapsedTime -= (Date.now() - pauseStartTime);
+    }
+    const duration = Math.floor(elapsedTime / 1000 / 60);
+
     const videoCount = data.videoCount || 0;
     const maxDuration = data.maxDuration || 0;
-    const sessionPaused = data.sessionPaused || false;
 
     // Update button text based on session state
     const startStopBtn = document.getElementById("startStopBtn");
     startStopBtn.textContent = sessionPaused ? "Start" : "Stop";
     startStopBtn.className = sessionPaused ? "" : "button-opposite";
-    
+
     const resetBtn = document.getElementById("resetBtn");
     resetBtn.disabled = !sessionPaused;
     resetBtn.className = sessionPaused ? "buttonPad" : "buttonPad button-opposite button-disabled";
@@ -48,27 +57,37 @@ async function updateStats() {
 }
 
 document.getElementById("startStopBtn").addEventListener("click", async () => {
-    const data = await chrome.storage.local.get(["sessionPaused"]);
+    const data = await chrome.storage.local.get([
+        "sessionPaused",
+        "sessionStart",
+        "pauseStartTime",
+    ]);
     const isPaused = data.sessionPaused || false;
+    const sessionStart = data.sessionStart || Date.now();
+    const pauseStartTime = data.pauseStartTime || null;
 
-    // Only toggle sessionPaused, do not touch other keys
-    await chrome.storage.local.set({ sessionPaused: !isPaused });
+    if (isPaused) {
+        // Resuming: adjust sessionStart forward by the pause duration
+        const pauseDuration = pauseStartTime ? (Date.now() - pauseStartTime) : 0;
+        await chrome.storage.local.set({
+            sessionPaused: false,
+            sessionStart: sessionStart + pauseDuration,
+            pauseStartTime: null,
+        });
+    } else {
+        // Pausing: record pause start time
+        await chrome.storage.local.set({
+            sessionPaused: true,
+            pauseStartTime: Date.now(),
+        });
+    }
+
     document.getElementById("startStopBtn").textContent = isPaused ? "Stop" : "Start";
     updateStats();
 });
 
 document.getElementById("resetBtn").addEventListener("click", async () => {
-    // Preserve maxDuration on reset
-    const data = await chrome.storage.local.get(["maxDuration"]);
-    const maxDuration = data.maxDuration || 0;
-    await chrome.storage.local.set({
-        sessionStart: Date.now(),
-        videoCount: 0,
-        lastUpdate: Date.now(),
-        maxDuration: 0,
-        sessionPaused: true,
-    });
-
+    await chrome.runtime.sendMessage({ action: "resetSession" });
     updateStats();
 
     // Notify content scripts to reset

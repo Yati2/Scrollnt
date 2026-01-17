@@ -52,7 +52,7 @@ class ChallengeManager {
     async checkChallengeTrigger(level) {
         await this.loadingPromise;
 
-        // Only show challenge once per level (2, 5, 8)
+        // Only show challenge once per level (4, 7, 9)
         if (this.completedLevels.has(level)) {
             return;
         }
@@ -131,26 +131,27 @@ class ChallengeManager {
     }
 
     loadRandomChallenge(challengeElement) {
-        // TESTING: Only cat game for development
-        const challengeTypes = ["catgame"];
-        const randomType =
-            challengeTypes[Math.floor(Math.random() * challengeTypes.length)];
-        const taskDiv = challengeElement.querySelector(
-            "#scrollnt-challenge-task",
-        );
-        const onComplete = async () =>
-            await this.completeChallenge(challengeElement);
+        const challengeTypes = ['memory', 'math', 'typing', 'mole', 'sarcasticAI', 'youtubeWatch','catgame'];
+        
+        const randomType = challengeTypes[Math.floor(Math.random() * challengeTypes.length)];
+        
+        const taskDiv = challengeElement.querySelector("#scrollnt-challenge-task");
+        const onComplete = async () => await this.completeChallenge(challengeElement);
 
-        // Cat game uses the challenge wrapper like other games
-        if (randomType === "catgame") {
+        // Mole and SarcasticAI challenges need their own wrapper, others use the gradient wrapper
+        if (randomType === 'mole') {
+            taskDiv.className = "captcha-challenge-wrapper";
+
+            createMoleChallenge(taskDiv, challengeElement, onComplete);
+        } else if (randomType === 'sarcasticAI') {
+            taskDiv.className = "captcha-challenge-wrapper";
+            createSarcasticAIChallenge(taskDiv, challengeElement, onComplete);
+        } else if (randomType === "catgame") {
             this.tracker.startJumpingGame(challengeElement);
             return;
         }
-
-        // Mole challenge needs its own wrapper, others use the gradient wrapper
-        if (randomType === "mole") {
-            taskDiv.className = "mole-challenge-wrapper";
-            createMoleChallenge(taskDiv, challengeElement, onComplete);
+          else if (randomType === 'youtubeWatch') {
+            createYouTubeWatchChallenge(taskDiv, challengeElement, onComplete);
         } else {
             // Create gradient wrapper for other challenges
             taskDiv.remove();

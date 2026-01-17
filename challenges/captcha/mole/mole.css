@@ -1,0 +1,99 @@
+/* Mole Challenge Specific Styles */
+/* Note: Shared captcha styles are in captcha.css */
+
+.mole-challenge-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+    padding: 12px;
+    background: white;
+}
+
+.mole-box {
+    aspect-ratio: 1;
+    width: 100%;
+    background: #f5f5f5;
+    background-size: cover;
+    background-position: center;
+    border: 2px solid #e0e0e0;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.15s ease;
+}
+
+.mole-box:hover {
+    border-color: #4285f4;
+    box-shadow: 0 2px 4px rgba(66, 133, 244, 0.2);
+}
+
+.mole-box:active {
+    transform: scale(0.98);
+}
+
+.mole-sprite {
+    width: 80%;
+    height: 80%;
+    object-fit: contain;
+    animation: mole-pop-up 0.3s ease-out;
+    pointer-events: none;
+}
+
+.mole-box.mole-hit {
+    border-color: #34a853;
+    background: #e6f4ea;
+}
+
+.mole-box.mole-caught {
+    border-color: #34a853;
+    background: #e6f4ea;
+    cursor: default;
+}
+
+.mole-box.mole-caught:hover {
+    border-color: #34a853;
+    box-shadow: none;
+    transform: none;
+}
+
+.mole-box.mole-miss {
+    border-color: #ea4335;
+    background: #fce8e6;
+    animation: mole-miss-animation 0.2s ease;
+}
+
+@keyframes mole-pop-up {
+    0% {
+        transform: translateY(100%) scale(0.5);
+        opacity: 0;
+    }
+
+    50% {
+        transform: translateY(-10%) scale(1.1);
+    }
+
+    100% {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes mole-miss-animation {
+
+    0%,
+    100% {
+        transform: translateX(0);
+    }
+
+    25% {
+        transform: translateX(-5px);
+    }
+
+    75% {
+        transform: translateX(5px);
+    }
+}
