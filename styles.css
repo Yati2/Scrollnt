@@ -24,20 +24,21 @@ html.scrollnt-viewport-shrink-3 {
 
 /* Uneven Padding - Top/Bottom only, cycles every 2 minutes starting at 1.5 minutes */
 html.scrollnt-viewport-padding-top {
-    padding-top: 20vh !important;
+    padding-top: 10vh !important;
     transition: padding 0.5s ease;
 }
 
 html.scrollnt-viewport-padding-bottom {
-    padding-bottom: 20vh !important;
+    padding-bottom: 10vh !important;
     transition: padding 0.5s ease;
 }
 
-/* Level 1 & 2: Desaturation */
-.scrollnt-desaturate {
-    filter: saturate(0.15) contrast(0.85);
+/* Level 2 & 3: Desaturation - Applied to HTML element */
+html.scrollnt-desaturate {
+    filter: saturate(0.50) contrast(0.50);
     transition: filter 1s ease;
 }
+
 
 /* Level 2: Micro Zoom Drift (20 mins) */
 .scrollnt-zoom-drift {

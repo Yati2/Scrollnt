@@ -173,17 +173,18 @@ class ScrollntTracker {
         switch (this.interventionLevel) {
             case 1:
                 this.applyViewportShrink();
-                this.removePadding();
+                this.applyViewportPaddingTop();
+                this.applyDesaturation();
                 break;
             case 2:
                 this.applyViewportShrink();
                 this.applyViewportPadding();
-                this.applyDesaturation(container);
+                this.applyDesaturation();
                 break;
             case 3:
                 this.applyViewportShrink();
                 this.applyViewportPadding();
-                this.applyDesaturation(container);
+                this.applyDesaturation();
                 this.applyMicroZoomDrift(container);
                 break;
             default:
@@ -258,8 +259,8 @@ class ScrollntTracker {
         // This method is kept for consistency with the intervention structure
     }
 
-    applyDesaturation(element) {
-        element.classList.add("scrollnt-desaturate");
+    applyDesaturation() {
+        document.documentElement.classList.add("scrollnt-desaturate");
     }
 
     applyMicroZoomDrift(element) {
@@ -337,6 +338,10 @@ class ScrollntTracker {
         );
     }
 
+    removeDesaturation() {
+        document.documentElement.classList.remove("scrollnt-desaturate");
+    }
+
     removeInterventions() {
         const container =
             document.querySelector(
@@ -346,11 +351,11 @@ class ScrollntTracker {
         document.documentElement.classList.remove(
             "scrollnt-viewport-shrink-1",
             "scrollnt-viewport-shrink-2",
-            "scrollnt-viewport-shrink-3"
+            "scrollnt-viewport-shrink-3",
+            "scrollnt-desaturate"
         );
         this.removePadding();
         container.classList.remove(
-            "scrollnt-desaturate",
             "scrollnt-zoom-drift",
             "scrollnt-blur",
         );
