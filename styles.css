@@ -24,41 +24,86 @@ html.scrollnt-viewport-shrink-3 {
 
 /* Uneven Padding - Top/Bottom only, cycles every 2 minutes starting at 1.5 minutes */
 html.scrollnt-viewport-padding-top {
-    padding-top: 10vh !important;
+    padding-top: 15vh !important;
     transition: padding 0.5s ease;
+    overflow: hidden !important;
+    position: fixed !important;
+    width: 100% !important;
+    height: 100% !important;
+}
+
+html.scrollnt-viewport-padding-top body {
+    overflow: hidden !important;
+    position: fixed !important;
+    width: 100% !important;
+    height: 100% !important;
 }
 
 html.scrollnt-viewport-padding-bottom {
-    padding-bottom: 10vh !important;
+    padding-bottom: 15vh !important;
     transition: padding 0.5s ease;
+    overflow: hidden !important;
+    position: fixed !important;
+    width: 100% !important;
+    height: 100% !important;
+}
+
+html.scrollnt-viewport-padding-bottom body {
+    overflow: hidden !important;
+    position: fixed !important;
+    width: 100% !important;
+    height: 100% !important;
 }
 
 /* Level 2 & 3: Desaturation - Applied to HTML element */
 html.scrollnt-desaturate {
-    filter: saturate(0.5) contrast(0.5);
-    transition: filter 1s ease;
+    animation: scrollnt-desaturate-animation 1s ease infinite;
 }
 
-/* Level 2: Micro Zoom Drift (20 mins) */
-.scrollnt-zoom-drift {
+@keyframes scrollnt-desaturate-animation {
+
+    0%,
+    100% {
+        filter: saturate(4.00) contrast(4.00);
+    }
+
+    50% {
+        filter: saturate(0.50) contrast(0.50);
+    }
+}
+
+/* Level 3: Micro Zoom Drift */
+/* Note: This works with the existing scale transform at level 3 (0.6) */
+html.scrollnt-zoom-drift {
     animation: scrollnt-drift 4s ease-in-out infinite;
 }
 
 @keyframes scrollnt-drift {
     0%,
     100% {
-        transform: scale(0.8);
+        transform: scale(0.58);
     }
 
     50% {
-        transform: scale(0.812);
+        transform: scale(0.609);
     }
 }
 
-/* Level 2: Blur Videos */
-.scrollnt-blur video {
-    filter: blur(3px) !important;
-    transition: filter 1s ease;
+/* Blur Videos */
+.scrollnt-blur-video {
+    animation: scrollnt-blur-animation 1s ease infinite;
+}
+
+@keyframes scrollnt-blur-animation {
+
+    0%,
+    100% {
+        filter: blur(3px) !important;
+    }
+
+    50% {
+        filter: blur(0px) !important;
+    }
 }
 
 /* Reminder Popup (20 mins) */
@@ -121,6 +166,15 @@ html.scrollnt-desaturate {
     align-items: center;
     justify-content: center;
     animation: scrollnt-fade-in 0.3s ease;
+    filter: none !important;
+    transform-origin: center center !important;
+    isolation: isolate;
+}
+
+
+.scrollnt-challenge-content,
+.scrollnt-challenge-content * {
+    filter: none !important;
 }
 
 .scrollnt-challenge-content {
@@ -131,6 +185,8 @@ html.scrollnt-desaturate {
     max-width: 500px;
     text-align: center;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
+    transform: none !important;
+    filter: none !important;
 }
 
 .scrollnt-challenge h2 {
@@ -190,6 +246,85 @@ html.scrollnt-desaturate {
 .scrollnt-sticky {
     scroll-behavior: auto !important;
     scroll-snap-type: none !important;
+    overscroll-behavior: contain !important;
+    /* Add slight resistance feel */
+    touch-action: pan-y !important;
+}
+
+/* Memory Game Styles */
+.memory-game-container {
+    width: 100%;
+    max-width: 100%;
+    margin: 0 auto;
+}
+
+.memory-game-container h3 {
+    margin: 0 0 8px 0;
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.memory-game-container>p {
+    margin: 0 0 15px 0;
+    font-size: 14px;
+    opacity: 0.9;
+}
+
+.memory-game-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin: 15px 0;
+    max-width: 250px;
+    margin-left: auto;
+    margin-right: auto;
+    justify-items: center;
+}
+
+.memory-game-button {
+    aspect-ratio: 1;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: transform 0.2s, opacity 0.2s, box-shadow 0.2s;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    min-height: 60px;
+}
+
+.memory-game-button:hover:not(:disabled) {
+    transform: scale(1.05);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+}
+
+.memory-game-button:active:not(:disabled) {
+    transform: scale(0.95);
+}
+
+.memory-game-button:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.memory-game-status {
+    text-align: center;
+    font-size: 16px;
+    font-weight: 600;
+    margin: 12px 0;
+    min-height: 24px;
+    color: white;
+    transition: color 0.3s;
+}
+
+.memory-game-info {
+    text-align: center;
+    font-size: 12px;
+    opacity: 0.8;
+    margin-top: 10px;
+}
+
+.memory-game-info p {
+    margin: 5px 0;
+}
 }
 
 /* Jumping Game Styles */

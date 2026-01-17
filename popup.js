@@ -5,25 +5,40 @@ async function updateStats() {
         "sessionStart",
         "videoCount",
         "lastUpdate",
+        "maxDuration",
+        "sessionPaused",
     ]);
 
     const sessionStart = data.sessionStart || Date.now();
     const duration = Math.floor((Date.now() - sessionStart) / 1000 / 60);
     const videoCount = data.videoCount || 0;
+    const maxDuration = data.maxDuration || 0;
+    const sessionPaused = data.sessionPaused || false;
 
+    // Update button text based on session state
+    const startStopBtn = document.getElementById("startStopBtn");
+    startStopBtn.textContent = sessionPaused ? "Start" : "Stop";
+    startStopBtn.className = sessionPaused ? "" : "button-opposite";
+    
+    const resetBtn = document.getElementById("resetBtn");
+    resetBtn.disabled = !sessionPaused;
+    resetBtn.className = sessionPaused ? "buttonPad" : "buttonPad button-opposite button-disabled";
+
+    // Update stats display
     document.getElementById("duration").textContent = `${duration} min`;
     document.getElementById("videoCount").textContent = videoCount;
+    document.getElementById("maxDuration").textContent = `${maxDuration} min`;
 
     // Update status
     const statusEl = document.getElementById("status");
 
-    if (duration >= 30) {
-        statusEl.textContent = "🚨 Challenge level - Take a break!";
+    if (duration >= 45) {
+        statusEl.textContent = "🚨 Take a break!";
         statusEl.className = "status danger";
-    } else if (duration >= 20) {
+    } else if (duration >= 30) {
         statusEl.textContent = "⚠️ High usage - Consider stopping";
         statusEl.className = "status warning";
-    } else if (duration >= 10) {
+    } else if (duration >= 20) {
         statusEl.textContent = "⏰ Moderate usage detected";
         statusEl.className = "status warning";
     } else {
@@ -32,11 +47,26 @@ async function updateStats() {
     }
 }
 
+document.getElementById("startStopBtn").addEventListener("click", async () => {
+    const data = await chrome.storage.local.get(["sessionPaused"]);
+    const isPaused = data.sessionPaused || false;
+
+    // Only toggle sessionPaused, do not touch other keys
+    await chrome.storage.local.set({ sessionPaused: !isPaused });
+    document.getElementById("startStopBtn").textContent = isPaused ? "Stop" : "Start";
+    updateStats();
+});
+
 document.getElementById("resetBtn").addEventListener("click", async () => {
+    // Preserve maxDuration on reset
+    const data = await chrome.storage.local.get(["maxDuration"]);
+    const maxDuration = data.maxDuration || 0;
     await chrome.storage.local.set({
         sessionStart: Date.now(),
         videoCount: 0,
         lastUpdate: Date.now(),
+        maxDuration: 0,
+        sessionPaused: true,
     });
 
     updateStats();

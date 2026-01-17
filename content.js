@@ -6,25 +6,64 @@ class ScrollntTracker {
     viewedArticles = new Set();
     constructor() {
         this.sessionStart = Date.now();
+        this.maxDuration = 60; // in minutes (default)
         this.videoCount = 0;
         this.swipeSpeed = 0;
         this.lastSwipeTime = 0;
         this.interventionLevel = 0;
         this.checkInterval = null;
         this.currentPaddingSide = null;
-        this.lastPaddingCycleTime = 0; // Track when padding was last cycled (in minutes)
-        this.gameCompleted = false;
-        this.catGame = null;
-        this.challengeShownStages = new Set(); // Track which stages have shown challenges
-        this.gameInProgress = false; // Track if game is currently active
+        this.lastPaddingCycleTime = 0;
+        this.lastShrinkCycleTime = 0;
+        this.challengeManager = new ChallengeManager(this);
+        this.loadUserSettings();
     }
 
-    init() {
+    async loadUserSettings() {
+        // Prompt for max session duration if not set
+        const data = await chrome.storage.local.get(["maxDuration"]);
+        if (!data.maxDuration || data.maxDuration <= 0) {
+            let input = prompt("Set your max TikTok session duration in minutes (default 60):", "60");
+            let val = parseInt(input);
+            if (isNaN(val) || val <= 0) val = 60;
+            this.maxDuration = val;
+            await chrome.storage.local.set({ maxDuration: val });
+        } else {
+            this.maxDuration = data.maxDuration;
+        }
+    }
+
+    async init() {
         console.log("Scrollnt initialized on TikTok");
-        this.loadSessionData();
+        await this.loadSessionData();
+        // Only start tracking if sessionPaused is false
+        const data = await chrome.storage.local.get(["sessionPaused"]);
+        if (!data.sessionPaused) {
+            this.startTracking();
+        }
+        // Listen for sessionPaused changes and start/stop tracking accordingly
+        chrome.storage.onChanged.addListener((changes, area) => {
+            if (area === 'local' && changes.sessionPaused) {
+                if (changes.sessionPaused.newValue === false) {
+                    this.startTracking();
+                } else if (changes.sessionPaused.newValue === true) {
+                    this.stopTracking();
+                }
+            }
+        });
+    }
+
+    startTracking() {
         this.trackScrollBehavior();
         this.observeArticles();
         this.startMonitoring();
+    }
+
+    stopTracking() {
+        if (this.checkInterval) clearInterval(this.checkInterval);
+        if (this.intersectionObserver) this.intersectionObserver.disconnect();
+        this.observedArticles.clear();
+        this.viewedArticles.clear();
     }
 
     async loadSessionData() {
@@ -32,20 +71,25 @@ class ScrollntTracker {
             const data = await chrome.storage.local.get([
                 "sessionStart",
                 "videoCount",
+                "maxDuration",
+                "sessionPaused",
             ]);
             if (data.sessionStart) {
                 this.sessionStart = data.sessionStart;
                 this.videoCount = data.videoCount || 0;
-                console.log("[Scrollnt] Loaded session data:", {
-                    sessionStart: new Date(
-                        this.sessionStart,
-                    ).toLocaleTimeString(),
-                    videoCount: this.videoCount,
-                });
+                if (data.maxDuration) this.maxDuration = data.maxDuration;
+                // console.log('[Scrollnt] Loaded session data:', {
+                //     sessionStart: new Date(this.sessionStart).toLocaleTimeString(),
+                //     videoCount: this.videoCount,
+                //     maxDuration: this.maxDuration,
+                //     sessionPaused: data.sessionPaused || false
+                // });
             } else {
                 await chrome.storage.local.set({
                     sessionStart: this.sessionStart,
                     videoCount: 0,
+                    maxDuration: this.maxDuration,
+                    sessionPaused: true,
                 });
             }
         } catch (error) {
@@ -60,6 +104,8 @@ class ScrollntTracker {
                 sessionStart: this.sessionStart,
                 videoCount: this.videoCount,
                 lastUpdate: Date.now(),
+                maxDuration: this.maxDuration,
+                sessionPaused: this.sessionPaused,
             });
         } catch (error) {
             console.warn("[Scrollnt] Error saving session data:", error);
@@ -99,34 +145,29 @@ class ScrollntTracker {
     }
 
     observeArticles() {
-        // Find all TikTok articles (each video is wrapped in an article)
-        const articles = document.querySelectorAll("article");
-        articles.forEach((article) => {
-            if (!this.observedArticles.has(article)) {
-                this.observedArticles.add(article);
-                this.setupIntersectionObserver(article);
+        chrome.storage.local.get(["sessionPaused"], (data) => {
+            if (data.sessionPaused) return;
+            // Find all TikTok articles (each video is wrapped in an article)
+            const articles = document.querySelectorAll("article");
+            articles.forEach(article => {
+                if (!this.observedArticles.has(article)) {
+                    this.observedArticles.add(article);
+                    this.setupIntersectionObserver(article);
 
-                // Check if article is already visible (in case page loaded with articles in view)
-                const rect = article.getBoundingClientRect();
-                const isVisible =
-                    rect.top < window.innerHeight && rect.bottom > 0;
-                const visibleRatio = isVisible
-                    ? Math.min(
-                          1,
-                          (Math.min(rect.bottom, window.innerHeight) -
-                              Math.max(rect.top, 0)) /
-                              rect.height,
-                      )
-                    : 0;
+                    // Check if article is already visible (in case page loaded with articles in view)
+                    const rect = article.getBoundingClientRect();
+                    const isVisible = rect.top < window.innerHeight && rect.bottom > 0;
+                    const visibleRatio = isVisible ? Math.min(1, (Math.min(rect.bottom, window.innerHeight) - Math.max(rect.top, 0)) / rect.height) : 0;
 
-                if (visibleRatio >= 0.5 && !this.viewedArticles.has(article)) {
-                    // Article is already visible and meets threshold
-                    this.viewedArticles.add(article);
-                    this.videoCount++;
-                    this.saveSessionData();
-                    this.checkInterventionNeeded();
+                    if (visibleRatio >= 0.5 && !this.viewedArticles.has(article)) {
+                        // Article is already visible and meets threshold
+                        this.viewedArticles.add(article);
+                        this.videoCount++;
+                        this.saveSessionData();
+                        this.checkInterventionNeeded();
+                    }
                 }
-            }
+            });
         });
     }
 
@@ -134,22 +175,19 @@ class ScrollntTracker {
         if (!this.intersectionObserver) {
             this.intersectionObserver = new IntersectionObserver(
                 (entries) => {
-                    entries.forEach((entry) => {
-                        if (
-                            entry.isIntersecting &&
-                            !this.viewedArticles.has(entry.target)
-                        ) {
-                            this.viewedArticles.add(entry.target);
-                            // Increment count instead of using Set size to preserve stored count
-                            this.videoCount++;
-                            this.saveSessionData();
-                            this.checkInterventionNeeded();
-                            // Optional: log for debugging
-                            console.log(
-                                "[Scrollnt] Article viewed. Total viewed:",
-                                this.videoCount,
-                            );
-                        }
+                    chrome.storage.local.get(["sessionPaused"], (data) => {
+                        if (data.sessionPaused) return;
+                        entries.forEach(entry => {
+                            if (entry.isIntersecting && !this.viewedArticles.has(entry.target)) {
+                                this.viewedArticles.add(entry.target);
+                                // Increment count instead of using Set size to preserve stored count
+                                this.videoCount++;
+                                this.saveSessionData();
+                                this.checkInterventionNeeded();
+                                // Optional: log for debugging
+                                console.log('[Scrollnt] Article viewed. Total viewed:', this.videoCount);
+                            }
+                        });
                     });
                 },
                 {
@@ -162,49 +200,40 @@ class ScrollntTracker {
     }
 
     getSessionDuration() {
+        if (this.sessionPaused) return 0;
         return Math.floor((Date.now() - this.sessionStart) / 1000 / 60); // minutes
     }
 
     checkInterventionNeeded() {
+        if (this.sessionPaused) return;
+        // Don't apply interventions if challenge is currently showing
+        if (document.querySelector(".scrollnt-challenge")) return;
         const duration = this.getSessionDuration();
-
-        // TESTING: Trigger challenge at 1 minute instead of 30
-        // Stage progression based on duration
-        // Stage 1: 10 mins (1 min)
-        // Stage 2: 20 mins (2 mins)
-        // Stage 3: 25 mins (2.5 mins)
-        // Stage 4: 30 mins (3 mins) - Challenge
-        // Stage 5: 35 mins (3.5 mins)
-        // Stage 6: 40 mins (4 mins)
-        // Stage 7: 45 mins (4.5 mins) - Challenge
-        // Stage 8: 50 mins (5 mins)
-        // Stage 9: 60 mins (6 mins) - Auto-lock
-
-        if (duration >= 60) {
-            this.interventionLevel = 9; // Auto-lock
-        } else if (duration >= 50) {
-            this.interventionLevel = 8; // Reminder 3
-        } else if (duration >= 45) {
-            this.interventionLevel = 7; // Challenge 2
-        } else if (duration >= 40) {
-            this.interventionLevel = 6; // Blur videos
-        } else if (duration >= 35) {
-            this.interventionLevel = 5; // Friction + Reminder 2
-        } else if (duration >= 0.5) {
-            // TESTING: Changed from 30 to 1
-            this.interventionLevel = 4; // UI Issue + Challenge 1
-        } else if (duration >= 25) {
-            this.interventionLevel = 3; // Micro zoom drift
-        } else if (duration >= 20) {
-            this.interventionLevel = 2; // Desaturation + Reminder 1
-        } else if (duration >= 10) {
+        const md = this.maxDuration;
+        if (duration >= md) {
+            this.interventionLevel = 9; // Full Lockdown
+        } else if (duration >= (5 / 6) * md) {
+            this.interventionLevel = 8; // Viewport shrink + padding + desaturation + zoom drift + friction + Blur + Reminder 2
+        } else if (duration >= (9 / 12) * md) {
+            this.interventionLevel = 7; // Viewport shrink + padding + desaturation + zoom drift + friction + Blur + Challenge 2
+        } else if (duration >= (4 / 6) * md) {
+            this.interventionLevel = 6; // Viewport shrink + padding + desaturation + zoom drift + friction + Blur
+        } else if (duration >= (7 / 12) * md) {
+            this.interventionLevel = 5; // Viewport shrink + padding + desaturation + zoom drift + friction + Reminder 2
+        } else if (duration >= (3 / 6) * md) {
+            this.interventionLevel = 4; // Viewport shrink + padding + desaturation + zoom drift + Challenge 1
+        } else if (duration >= (5 / 12) * md) {
+            this.interventionLevel = 3; // Viewport shrink + padding + desaturation + zoom drift
+        } else if (duration >= (2 / 6) * md) {
+            this.interventionLevel = 2; // Viewport shrink + padding + desaturation + Reminder 1
+        } else if (duration >= (1 / 6) * md) {
             this.interventionLevel = 1; // Viewport shrink + padding
         } else {
             this.interventionLevel = 0;
         }
-
         this.applyIntervention();
         this.checkPaddingCycle();
+        this.checkShrinkCycle();
     }
 
     applyIntervention() {
@@ -216,70 +245,92 @@ class ScrollntTracker {
                 '[data-e2e="recommend-list-item-container"]',
             ) || document.body;
 
+        if (this.interventionLevel === 0) {
+            this.removeInterventions();
+            return;
+        }
+
+        // Apply viewport shrink in all intervention phases (cycles through 1, 2, 3)
+        this.applyViewportShrink();
+
+        // Apply other interventions based on level
         switch (this.interventionLevel) {
-            case 0:
-                this.removeInterventions();
+            case 1:
+                // Padding handled by checkPaddingCycle
+                this.challengeManager.checkChallengeTrigger(1);
                 break;
-            case 1: // Stage 1: 10 mins - Viewport shrink + padding
-                this.applyViewportShrink();
-                break;
-            case 2: // Stage 2: 20 mins - Desaturation + Reminder 1
-                this.applyViewportShrink();
+            case 2:
+                // Padding handled by checkPaddingCycle
                 this.applyDesaturation();
-                this.showReminder();
+                // Scroll friction temporarily disabled - needs better implementation
+                // this.applyScrollFriction();
+                this.challengeManager.checkChallengeTrigger(2);
                 break;
-            case 3: // Stage 3: 25 mins - Micro zoom drift
-                this.applyViewportShrink();
-                this.applyDesaturation();
-                this.applyMicroZoomDrift(container);
-                break;
-            case 4: // Stage 4: 30 mins - UI Issue + Challenge
-                this.applyViewportShrink();
+            case 3:
+                // Padding handled by checkPaddingCycle
                 this.applyDesaturation();
                 this.applyMicroZoomDrift(container);
-                if (!this.challengeShownStages.has(4)) {
-                    this.showChallenge(4);
-                    this.challengeShownStages.add(4);
-                }
+                // Scroll friction temporarily disabled - needs better implementation
+                // this.applyScrollFriction();
+                this.challengeManager.checkChallengeTrigger(3);
                 break;
-            case 5: // Stage 5: 35 mins - Friction + Reminder 2
-                this.applyViewportShrink();
+            case 4:
+                // Padding handled by checkPaddingCycle
                 this.applyDesaturation();
                 this.applyMicroZoomDrift(container);
-                this.showReminder();
+                // Scroll friction temporarily disabled - needs better implementation
+                // this.applyScrollFriction();
+                this.challengeManager.checkChallengeTrigger(4);
                 break;
-            case 6: // Stage 6: 40 mins - Blur videos
-                this.applyViewportShrink();
+            case 5:
+                // Padding handled by checkPaddingCycle
                 this.applyDesaturation();
                 this.applyMicroZoomDrift(container);
-                this.applyBlur(container);
+                // Scroll friction temporarily disabled - needs better implementation
+                // this.applyScrollFriction();
+                this.challengeManager.checkChallengeTrigger(5);
                 break;
-            case 7: // Stage 7: 45 mins - Challenge 2
-                this.applyViewportShrink();
+            case 6:
+                // Padding handled by checkPaddingCycle
                 this.applyDesaturation();
                 this.applyMicroZoomDrift(container);
                 this.applyBlur(container);
-                if (!this.challengeShownStages.has(7)) {
-                    this.showChallenge(7);
-                    this.challengeShownStages.add(7);
-                }
+                // Scroll friction temporarily disabled - needs better implementation
+                // this.applyScrollFriction();
+                this.challengeManager.checkChallengeTrigger(6);
                 break;
-            case 8: // Stage 8: 50 mins - Reminder 3
-                this.applyViewportShrink();
+            case 7:
+                // Padding handled by checkPaddingCycle
                 this.applyDesaturation();
                 this.applyMicroZoomDrift(container);
                 this.applyBlur(container);
-                this.showReminder();
+                // Scroll friction temporarily disabled - needs better implementation
+                // this.applyScrollFriction();
+                this.challengeManager.checkChallengeTrigger(7);
                 break;
-            case 9: // Stage 9: 60 mins - Auto-lock
-                this.showAutoLock();
+            case 8:
+                // Padding handled by checkPaddingCycle
+                this.applyDesaturation();
+                this.applyMicroZoomDrift(container);
+                this.applyBlur(container);
+                // Scroll friction temporarily disabled - needs better implementation
+                // this.applyScrollFriction();
+                this.challengeManager.checkChallengeTrigger(8);
                 break;
-            default:
-                this.removeInterventions();
+            case 9:
+                // Full Lockdown - all interventions
+                // Padding handled by checkPaddingCycle
+                this.applyDesaturation();
+                this.applyMicroZoomDrift(container);
+                this.applyBlur(container);
+                this.challengeManager.checkChallengeTrigger(9);
+                break;
         }
     }
 
     applyViewportShrink() {
+        this.checkShrinkCycle();
+
         // Remove all shrink classes first
         document.documentElement.classList.remove(
             "scrollnt-viewport-shrink-1",
@@ -287,38 +338,70 @@ class ScrollntTracker {
             "scrollnt-viewport-shrink-3",
         );
 
-        // Apply the appropriate shrink level based on intervention level
-        const shrinkClass = `scrollnt-viewport-shrink-${this.interventionLevel}`;
+        // Apply the current shrink level (cycles through 1, 2, 3)
+        const shrinkClass = `scrollnt-viewport-shrink-${this.currentShrinkLevel}`;
         document.documentElement.classList.add(shrinkClass);
+    }
+
+    checkShrinkCycle() {
+        const duration = this.getSessionDuration();
+        const md = this.maxDuration;
+
+        // Only cycle if we're in an intervention phase (interventionLevel >= 1)
+        if (this.interventionLevel >= 1) {
+            // Calculate cycle duration based on intervention phase
+            // Cycle every 1/12 of maxDuration (e.g., every 5 minutes for 60 min max)
+            const cycleDuration = md / 12;
+
+            // Calculate which cycle we're in (starting from when first intervention activates)
+            const firstInterventionTime = md / 6; // First intervention at 1/6 of maxDuration
+            if (duration >= firstInterventionTime) {
+                const timeSinceFirstIntervention = duration - firstInterventionTime;
+                const currentCycle = Math.floor(timeSinceFirstIntervention / cycleDuration);
+                const lastCycle = this.lastShrinkCycleTime >= firstInterventionTime
+                    ? Math.floor((this.lastShrinkCycleTime - firstInterventionTime) / cycleDuration)
+                    : -1;
+
+                // If we're in a new cycle, advance to next shrink level
+                if (currentCycle > lastCycle) {
+                    this.currentShrinkLevel = ((this.currentShrinkLevel) % 3) + 1; // Cycle 1->2->3->1
+                    this.lastShrinkCycleTime = duration;
+                    console.log(`[Scrollnt] Shrink cycled to level ${this.currentShrinkLevel} (at ${duration.toFixed(1)} minutes)`);
+                }
+            }
+        } else {
+            // Reset to level 1 when no intervention is active
+            this.currentShrinkLevel = 1;
+            this.lastShrinkCycleTime = 0;
+        }
     }
 
     checkPaddingCycle() {
         const duration = this.getSessionDuration();
+        const md = this.maxDuration;
 
-        // Padding starts at 1.5 minutes and cycles every 2 minutes
-        if (duration >= 1.5) {
-            // Calculate which 2-minute cycle we're in (starting from 1.5 minutes)
-            // Cycle 0: 1.5-3.5 min, Cycle 1: 3.5-5.5 min, Cycle 2: 5.5-7.5 min, etc.
-            const cycleStart = 1.5;
-            const cycleDuration = 2.0;
-            const currentCycle = Math.floor(
-                (duration - cycleStart) / cycleDuration,
-            );
-            const lastCycle =
-                this.lastPaddingCycleTime >= cycleStart
-                    ? Math.floor(
-                          (this.lastPaddingCycleTime - cycleStart) /
-                              cycleDuration,
-                      )
-                    : -1;
+        // Padding starts when first intervention activates (1/6 of maxDuration)
+        const firstInterventionTime = md / 6;
+
+        if (duration >= firstInterventionTime) {
+            // Calculate cycle duration based on maxDuration
+            // Cycle every 1/12 of maxDuration (e.g., every 5 minutes for 60 min max)
+            const cycleDuration = md / 12;
+
+            // Calculate which cycle we're in (starting from first intervention)
+            const timeSinceFirstIntervention = duration - firstInterventionTime;
+            const currentCycle = Math.floor(timeSinceFirstIntervention / cycleDuration);
+            const lastCycle = this.lastPaddingCycleTime >= firstInterventionTime
+                ? Math.floor((this.lastPaddingCycleTime - firstInterventionTime) / cycleDuration)
+                : -1;
 
             // If we're in a new cycle, or haven't initialized yet, cycle the padding
             if (currentCycle > lastCycle || this.currentPaddingSide === null) {
                 this.cyclePadding();
                 this.lastPaddingCycleTime = duration;
             }
-        } else if (duration < 1.5) {
-            // Remove padding if we're below 1.5 minutes
+        } else if (duration < firstInterventionTime) {
+            // Remove padding if we're below first intervention time
             this.removePadding();
             this.currentPaddingSide = null;
             this.lastPaddingCycleTime = 0;
@@ -363,7 +446,20 @@ class ScrollntTracker {
     }
 
     applyBlur(element) {
-        element.classList.add("scrollnt-blur");
+        const videoContainers = document.querySelectorAll('[class*="DivContainer"]');
+        videoContainers.forEach(container => {
+            if (container.querySelector('video') && !container.classList.contains("scrollnt-blur-video")) {
+                container.classList.add("scrollnt-blur-video");
+            }
+        });
+    }
+
+    removeBlur() {
+        // Remove blur from all video container elements
+        const videoContainers = document.querySelectorAll('[class*="DivContainer"]');
+        videoContainers.forEach(container => {
+            container.classList.remove("scrollnt-blur-video");
+        });
     }
 
     showReminder() {
@@ -471,12 +567,17 @@ class ScrollntTracker {
             "scrollnt-desaturate",
         );
         this.removePadding();
-        container.classList.remove("scrollnt-zoom-drift", "scrollnt-blur");
+        this.removeBlur();
+        container.classList.remove(
+            "scrollnt-zoom-drift",
+        );
     }
 
     startMonitoring() {
         this.checkInterval = setInterval(() => {
-            this.checkInterventionNeeded();
+            if (!this.sessionPaused) {
+                this.checkInterventionNeeded();
+            }
         }, 30000); // Check every 30 seconds to catch 1.5 and 2-minute intervals accurately
     }
 
