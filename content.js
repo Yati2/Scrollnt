@@ -173,11 +173,11 @@ class ScrollntTracker {
         }
 
         // Progressive intervention levels based on your specs
-        if (duration >= 3) {
+        if (duration >= 1) {
             this.interventionLevel = 3; // Challenge level
         } else if (duration >= 2) {
             this.interventionLevel = 2; // Micro zoom drift + desaturation
-        } else if (duration >= 1) {
+        } else if (duration >= 3) {
             this.interventionLevel = 1; // Viewport shrink + desaturation
         } else {
             this.interventionLevel = 0;
