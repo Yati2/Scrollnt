@@ -5,15 +5,17 @@ async function updateStats() {
         "sessionStart",
         "videoCount",
         "lastUpdate",
+        "maxDuration",
     ]);
 
     const sessionStart = data.sessionStart || Date.now();
     const duration = Math.floor((Date.now() - sessionStart) / 1000 / 60);
     const videoCount = data.videoCount || 0;
+    const maxDuration = data.maxDuration || 0;
 
     document.getElementById("duration").textContent = `${duration} min`;
     document.getElementById("videoCount").textContent = videoCount;
-    document.getElementById("maxDuration").textContent = duration;
+    document.getElementById("maxDuration").textContent = `${maxDuration} min`;
 
     // Update status
     const statusEl = document.getElementById("status");
