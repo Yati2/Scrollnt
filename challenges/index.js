@@ -131,10 +131,11 @@ class ChallengeManager {
     }
 
     loadRandomChallenge(challengeElement) {
-        const challengeTypes = ['memory', 'math', 'typing', 'mole', 'sarcasticAI', 'youtubeWatch','catgame'];
-        
+        const challengeTypes = ['math'];
+        // const challengeTypes = ['memory', 'math', 'typing', 'mole', 'sarcasticAI', 'youtubeWatch', 'catgame'];
+
         const randomType = challengeTypes[Math.floor(Math.random() * challengeTypes.length)];
-        
+
         const taskDiv = challengeElement.querySelector("#scrollnt-challenge-task");
         const onComplete = async () => await this.completeChallenge(challengeElement);
 
@@ -152,7 +153,7 @@ class ChallengeManager {
             this.tracker.startJumpingGame(challengeElement);
             return;
         }
-          else if (randomType === 'youtubeWatch') {
+        else if (randomType === 'youtubeWatch') {
             createYouTubeWatchChallenge(taskDiv, challengeElement, onComplete);
         } else {
             // Create gradient wrapper for other challenges

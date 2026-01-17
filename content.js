@@ -357,31 +357,28 @@ class ScrollntTracker {
                 break;
 
             case 6:
-                // Case 6: desaturation (animated) + micro zoom drift + viewport shrink + padding cycle + tilt + hue rotation
-                console.log('[Scrollnt] Case 6: Desaturation + Drift + Shrink + Padding + Tilt + Hue Rotation');
+                // Case 6: desaturation (animated) + micro zoom drift + viewport shrink + padding cycle + tilt
+                console.log('[Scrollnt] Case 6: Desaturation + Drift + Shrink + Padding + Tilt');
                 this.applyTiltVideo();
                 this.applyMicroZoomDrift();
                 this.applyDesaturation("animated");
-                this.applyHueRotation();
                 break;
 
             case 7:
-                // Case 7: desaturation (animated) + micro zoom drift + viewport shrink + padding cycle + tilt + hue rotation + challenge
-                console.log('[Scrollnt] Case 7: Desaturation + Drift + Shrink + Padding + Tilt + Hue Rotation + Challenge');
+                // Case 7: desaturation (animated) + micro zoom drift + viewport shrink + padding cycle + tilt + challenge
+                console.log('[Scrollnt] Case 7: Desaturation + Drift + Shrink + Padding + Tilt + Challenge');
                 this.applyTiltVideo();
                 this.applyMicroZoomDrift();
                 this.applyDesaturation("animated");
-                this.applyHueRotation();
                 this.challengeManager.checkChallengeTrigger(7);
                 break;
 
             case 8:
-                // Case 8: desaturation (animated) + micro zoom drift + viewport shrink + padding cycle + tilt + hue rotation + reminder 3
-                console.log('[Scrollnt] Case 8: Desaturation + Drift + Shrink + Padding + Tilt + Hue Rotation + Reminder');
+                // Case 8: desaturation (animated) + micro zoom drift + viewport shrink + padding cycle + tilt + reminder 3
+                console.log('[Scrollnt] Case 8: Desaturation + Drift + Shrink + Padding + Tilt + Reminder');
                 this.applyTiltVideo();
                 this.applyMicroZoomDrift();
                 this.applyDesaturation("animated");
-                this.applyHueRotation();
                 this.showReminder();
                 break;
 
@@ -533,20 +530,12 @@ class ScrollntTracker {
     }
 
     applyDesaturation(type = "animated") {
+        // Apply desaturation effect to entire html element
         // type can be "static" (case 2) or "animated" (cases 5-8)
-        const videoContainers = document.querySelectorAll('[class*="DivContainer"]');
-        const desaturateClass = type === "animated"
-            ? "scrollnt-desaturate-video-animated"
-            : "scrollnt-desaturate-video-static";
-
-        videoContainers.forEach(container => {
-            if (container.querySelector('video')) {
-                // Remove both desaturate classes first
-                container.classList.remove("scrollnt-desaturate-video-static", "scrollnt-desaturate-video-animated");
-                // Add the appropriate class
-                container.classList.add(desaturateClass);
-            }
-        });
+        if (type === "animated") {
+            document.documentElement.classList.add("scrollnt-desaturate-animated");
+        }
+        // Note: We're only using animated desaturation now, static is deprecated
     }
 
     applyMicroZoomDrift() {
@@ -555,34 +544,6 @@ class ScrollntTracker {
         document.documentElement.classList.add("scrollnt-zoom-drift");
     }
 
-    applyHueRotation() {
-        // Apply psychedelic hue rotation effect to video elements (Cases 6-8)
-        const videoContainers = document.querySelectorAll('[class*="DivContainer"]');
-        videoContainers.forEach((container) => {
-            const video = container.querySelector("video");
-            if (video) {
-                if (!container.classList.contains("scrollnt-hue-rotation-video")) {
-                    container.classList.add("scrollnt-hue-rotation-video");
-                }
-                if (!video.classList.contains("scrollnt-hue-rotation-video")) {
-                    video.classList.add("scrollnt-hue-rotation-video");
-                    console.log('[Scrollnt] Applied psychedelic hue rotation to video element');
-                }
-            }
-        });
-    }
-
-    removeHueRotation() {
-        // Remove hue rotation from all video container and video elements
-        const videoContainers = document.querySelectorAll('[class*="DivContainer"]');
-        videoContainers.forEach((container) => {
-            container.classList.remove("scrollnt-hue-rotation-video");
-            const video = container.querySelector("video");
-            if (video) {
-                video.classList.remove("scrollnt-hue-rotation-video");
-            }
-        });
-    }
 
     removeTilt() {
         // Remove tilt from all video container elements
@@ -668,6 +629,9 @@ class ScrollntTracker {
     showAutoLock() {
         if (document.querySelector('.scrollnt-autolock')) return;
 
+        // Remove all interventions before showing autolock
+        this.removeInterventions();
+
         const sessionDuration = this.getSessionDuration();
         const reminderCount = chrome.storage.local.get(["reminderCount"]).then(data => data.reminderCount || 0) || 0;
         this.autolockManager.show(this.videoCount, sessionDuration, reminderCount);
@@ -683,13 +647,8 @@ class ScrollntTracker {
     }
 
     removeDesaturation() {
-        const videoContainers = document.querySelectorAll('[class*="DivContainer"]');
-        videoContainers.forEach(container => {
-            container.classList.remove(
-                "scrollnt-desaturate-video-static",
-                "scrollnt-desaturate-video-animated"
-            );
-        });
+        // Remove desaturation from html element
+        document.documentElement.classList.remove("scrollnt-desaturate-animated");
     }
 
     removeInterventions() {
@@ -706,7 +665,6 @@ class ScrollntTracker {
         // Remove all video container interventions
         this.removeTilt();
         this.removeDesaturation();
-        this.removeHueRotation();
     }
 
     startMonitoring() {
