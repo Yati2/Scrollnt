@@ -1,0 +1,165 @@
+/* Scrollnt Visual Interventions */
+
+/* Level 1: Viewport Shrink (10 mins) */
+.scrollnt-viewport-shrink {
+    transform: scale(0.8);
+    transition: transform 0.5s ease;
+    padding: 10vh 10vw !important;
+}
+
+/* Level 1 & 2: Desaturation */
+.scrollnt-desaturate {
+    filter: saturate(0.15) contrast(0.85);
+    transition: filter 1s ease;
+}
+
+/* Level 2: Micro Zoom Drift (20 mins) */
+.scrollnt-zoom-drift {
+    animation: scrollnt-drift 4s ease-in-out infinite;
+}
+
+@keyframes scrollnt-drift {
+    0%,
+    100% {
+        transform: scale(0.8);
+    }
+    50% {
+        transform: scale(0.812);
+    }
+}
+
+/* Level 2: Blur Videos */
+.scrollnt-blur video {
+    filter: blur(3px) !important;
+    transition: filter 1s ease;
+}
+
+/* Reminder Popup (20 mins) */
+.scrollnt-reminder {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 0, 0, 0.95);
+    color: white;
+    padding: 30px;
+    border-radius: 16px;
+    z-index: 999999;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    animation: scrollnt-fade-in 0.3s ease;
+}
+
+.scrollnt-reminder-content {
+    text-align: center;
+}
+
+.scrollnt-reminder h3 {
+    margin: 0 0 10px 0;
+    font-size: 24px;
+    font-weight: 600;
+}
+
+.scrollnt-reminder p {
+    margin: 10px 0 20px 0;
+    font-size: 16px;
+    opacity: 0.9;
+}
+
+.scrollnt-dismiss {
+    background: #fff;
+    color: #000;
+    border: none;
+    padding: 10px 24px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.scrollnt-dismiss:hover {
+    transform: scale(1.05);
+}
+
+/* Challenge Modal (30 mins) */
+.scrollnt-challenge {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.98);
+    z-index: 9999999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: scrollnt-fade-in 0.3s ease;
+}
+
+.scrollnt-challenge-content {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 50px;
+    border-radius: 24px;
+    max-width: 500px;
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
+}
+
+.scrollnt-challenge h2 {
+    margin: 0 0 15px 0;
+    font-size: 32px;
+    font-weight: 700;
+}
+
+.scrollnt-challenge p {
+    margin: 10px 0;
+    font-size: 18px;
+    opacity: 0.95;
+}
+
+#scrollnt-challenge-task {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 25px;
+    border-radius: 12px;
+    margin: 25px 0;
+    font-size: 20px;
+    font-weight: 600;
+}
+
+.scrollnt-challenge-btn {
+    background: white;
+    color: #667eea;
+    border: none;
+    padding: 15px 40px;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition:
+        transform 0.2s,
+        box-shadow 0.2s;
+}
+
+.scrollnt-challenge-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+}
+
+/* Animations */
+@keyframes scrollnt-fade-in {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -45%);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, -50%);
+    }
+}
+
+/* Sticky scroll effect */
+.scrollnt-sticky {
+    scroll-behavior: auto !important;
+    scroll-snap-type: none !important;
+}

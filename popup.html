@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Scrollnt</title>
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+
+            body {
+                width: 320px;
+                padding: 20px;
+                font-family:
+                    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                    sans-serif;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+            }
+
+            h1 {
+                font-size: 24px;
+                margin-bottom: 20px;
+                text-align: center;
+            }
+
+            .stats {
+                background: rgba(255, 255, 255, 0.2);
+                border-radius: 12px;
+                padding: 15px;
+                margin-bottom: 15px;
+            }
+
+            .stat-item {
+                display: flex;
+                justify-content: space-between;
+                margin: 10px 0;
+                font-size: 14px;
+            }
+
+            .stat-label {
+                opacity: 0.9;
+            }
+
+            .stat-value {
+                font-weight: 700;
+                font-size: 18px;
+            }
+
+            .status {
+                text-align: center;
+                padding: 15px;
+                background: rgba(255, 255, 255, 0.15);
+                border-radius: 12px;
+                margin-bottom: 15px;
+                font-size: 13px;
+            }
+
+            .status.warning {
+                background: rgba(255, 193, 7, 0.3);
+            }
+
+            .status.danger {
+                background: rgba(244, 67, 54, 0.3);
+            }
+
+            button {
+                width: 100%;
+                padding: 12px;
+                background: white;
+                color: #667eea;
+                border: none;
+                border-radius: 8px;
+                font-size: 14px;
+                font-weight: 600;
+                cursor: pointer;
+                transition: transform 0.2s;
+            }
+
+            button:hover {
+                transform: translateY(-2px);
+            }
+
+            button:active {
+                transform: translateY(0);
+            }
+
+            .footer {
+                margin-top: 15px;
+                text-align: center;
+                font-size: 11px;
+                opacity: 0.7;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>📱 Scrollnt</h1>
+
+        <div class="stats">
+            <div class="stat-item">
+                <span class="stat-label">Session Duration</span>
+                <span class="stat-value" id="duration">0 min</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Videos Watched</span>
+                <span class="stat-value" id="videoCount">0</span>
+            </div>
+        </div>
+
+        <div class="status" id="status">✅ Normal browsing</div>
+
+        <button id="resetBtn">Reset Session</button>
+
+        <div class="footer">Stay mindful of your screen time ✨</div>
+
+        <script src="popup.js"></script>
+    </body>
+</html>
