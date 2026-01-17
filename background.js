@@ -8,7 +8,6 @@ chrome.runtime.onInstalled.addListener(() => {
     chrome.storage.local.set({
         sessionStart: 0,
         videoCount: 0,
-        totalTimeSpent: 0,
         maxDuration: 0, // default max duration in minutes
         sessionPaused: true,
     });
@@ -40,13 +39,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     }
 
     if (request.action === "resetSession") {
-        // Preserve maxDuration on reset
         chrome.storage.local.get(["maxDuration"], (data) => {
             chrome.storage.local.set({
                 sessionStart: Date.now(),
                 videoCount: 0,
                 sessionDuration: 0,
-                maxDuration: data.maxDuration || 0,
+                maxDuration: 0,
                 sessionPaused: true,
             });
             sendResponse({ success: true });

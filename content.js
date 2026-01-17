@@ -21,13 +21,13 @@ class ScrollntTracker {
     async loadUserSettings() {
         // Prompt for max session duration if not set
         const data = await chrome.storage.local.get(["maxDuration"]);
-        if (!data.maxDuration || data.maxDuration < 6) {
+        if (!data.maxDuration || data.maxDuration <= 0) {
             do{
                 let input = prompt("Set your max TikTok session duration in minutes (default 60, minimum 6):", "60");
                 let val = parseInt(input);
                 this.maxDuration = val;
                 await chrome.storage.local.set({ maxDuration: val });
-            } while (this.maxDuration < 6);
+            } while (this.maxDuration <= 0);
         } else {
             this.maxDuration = data.maxDuration;
         }
@@ -202,7 +202,14 @@ class ScrollntTracker {
 
     getSessionDuration() {
         if (this.sessionPaused) return 0;
-        return Math.floor((Date.now() - this.sessionStart) / 1000 / 60); // minutes
+
+        const durationCalc= (Date.now() - this.sessionStart) / 1000 / 60;
+        
+        if (parseInt(durationCalc) <= 0) {
+            return durationCalc;
+        } else {
+            return parseInt(durationCalc);
+        }
     }
 
     checkInterventionNeeded() {
