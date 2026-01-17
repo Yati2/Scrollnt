@@ -52,7 +52,7 @@ class ChallengeManager {
     async checkChallengeTrigger(level) {
         await this.loadingPromise;
 
-        // Only show challenge once per level (4, 7, 9)
+        // Only show challenge once per level (1, 2)
         if (this.completedLevels.has(level)) {
             return;
         }
@@ -131,10 +131,10 @@ class ChallengeManager {
     }
 
     loadRandomChallenge(challengeElement) {
-        const challengeTypes = ['memory', 'math', 'typing', 'mole', 'sarcasticAI', 'youtubeWatch','catgame'];
-        
+        const challengeTypes = ['memory', 'math', 'typing', 'mole', 'sarcasticAI', 'youtubeWatch', 'catgame'];
+
         const randomType = challengeTypes[Math.floor(Math.random() * challengeTypes.length)];
-        
+
         const taskDiv = challengeElement.querySelector("#scrollnt-challenge-task");
         const onComplete = async () => await this.completeChallenge(challengeElement);
 
@@ -152,7 +152,7 @@ class ChallengeManager {
             this.tracker.startJumpingGame(challengeElement);
             return;
         }
-          else if (randomType === 'youtubeWatch') {
+        else if (randomType === 'youtubeWatch') {
             createYouTubeWatchChallenge(taskDiv, challengeElement, onComplete);
         } else {
             // Create gradient wrapper for other challenges

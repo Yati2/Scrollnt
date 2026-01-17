@@ -53,13 +53,18 @@ function createMemoryGame(taskDiv, challengeElement, onComplete) {
     taskDiv.appendChild(container);
 
     // Adjust grid layout based on number of colors
-    if (numColors === 4) {
+    if (numColors === 3) {
+        grid.style.gridTemplateColumns = 'repeat(3, 1fr)';
+        grid.style.maxWidth = '240px';
+    } else if (numColors === 4) {
         grid.style.gridTemplateColumns = 'repeat(2, 1fr)';
-        grid.style.maxWidth = '160px';
+        grid.style.maxWidth = '164px';
     } else if (numColors === 5) {
         grid.style.gridTemplateColumns = 'repeat(3, 1fr)';
-    } else {
+        grid.style.maxWidth = '240px';
+    } else if (numColors === 6) {
         grid.style.gridTemplateColumns = 'repeat(3, 1fr)';
+        grid.style.maxWidth = '240px';
     }
 
     // Create color buttons

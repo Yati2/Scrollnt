@@ -267,25 +267,20 @@ class ScrollntTracker {
         const md = this.maxDuration;
         const previousLevel = this.interventionLevel;
 
+        // 6 intervention levels (0-6)
         if (duration >= md) {
-            this.interventionLevel = 9; // Full Lockdown
+            this.interventionLevel = 6; // Auto Lock
         } else if (duration >= (5 / 6) * md) {
-            this.interventionLevel = 8; // Viewport shrink + padding + desaturation + zoom drift + Hue Rotation + Reminder 3
-        } else if (duration >= (9 / 12) * md) {
-            this.interventionLevel = 7; // Viewport shrink + padding + desaturation + zoom drift + Hue Rotation + Challenge 2
+            this.interventionLevel = 5; // Challenge 2 + all effects
         } else if (duration >= (4 / 6) * md) {
-            this.interventionLevel = 6; // Viewport shrink + padding + desaturation + zoom drift + Hue Rotation
-        } else if (duration >= (7 / 12) * md) {
-            this.interventionLevel = 5; // Viewport shrink + padding + desaturation + zoom drift + friction + Reminder 2
+            this.interventionLevel = 4; // Reminder + all effects
         } else if (duration >= (3 / 6) * md) {
-            this.interventionLevel = 4; // Viewport shrink + padding + desaturation + zoom drift + Challenge 1
-        } else if (duration >= (5 / 12) * md) {
-            this.interventionLevel = 3; // Viewport shrink + padding + desaturation + zoom drift
+            this.interventionLevel = 3; // Challenge 1 + drift + all effects
         } else if (duration >= (2 / 6) * md) {
-            this.interventionLevel = 2; // Viewport shrink + padding + desaturation + Reminder 1
+            this.interventionLevel = 2; // Tilt + Reminder + desaturation
         } else if (duration >= 0.5) {
             // TESTING: Trigger at 30 seconds instead of (1/6) * md
-            this.interventionLevel = 1; // Viewport shrink + padding
+            this.interventionLevel = 1; // Padding + shrink + desaturation
         } else {
             this.interventionLevel = 0;
         }
@@ -321,73 +316,49 @@ class ScrollntTracker {
         // Apply other interventions based on level
         switch (this.interventionLevel) {
             case 1:
-                // Case 1: padding cycle + viewport shrink (handled above)
-                console.log('[Scrollnt] Case 1: Padding cycle + Viewport shrink');
+                // Case 1: padding cycle + viewport shrink + desaturation
+                console.log('Case 1');
+                this.applyDesaturation("animated");
                 break;
 
             case 2:
-                // Case 2: tilt + padding cycle + viewport shrink + (reminder commented for now)
-                console.log('[Scrollnt] Case 2: Tilt + Padding + Shrink');
+                // Case 2: tilt + padding cycle + viewport shrink + desaturation
+                console.log('Case 2');
                 this.applyTiltVideo();
-                // this.showReminder(); // Commented as requested
+                this.applyDesaturation("animated");
+                this.showReminder();
                 break;
 
             case 3:
-                // Case 3: tilt + padding cycle + viewport shrink + micro zoom drift
-                console.log('[Scrollnt] Case 3: Tilt + Padding + Shrink + Micro Zoom Drift');
+                // Case 3: tilt + padding cycle + viewport shrink + micro zoom drift + desaturation
+                console.log('Case 3');
                 this.applyTiltVideo();
                 this.applyMicroZoomDrift();
+                this.applyDesaturation("animated");
+                this.challengeManager.checkChallengeTrigger(1);
                 break;
 
             case 4:
-                // Case 4: challenge + tilt + padding cycle + viewport shrink + micro zoom drift
-                console.log('[Scrollnt] Case 4: Challenge + Tilt + Padding + Shrink + Drift');
+                // Case 4: tilt + padding cycle + viewport shrink + micro zoom drift + desaturation + reminder + ui issue
+                console.log('Case 4');
                 this.applyTiltVideo();
                 this.applyMicroZoomDrift();
-                this.challengeManager.checkChallengeTrigger(4);
+                this.applyDesaturation("animated");
+                this.showReminder();
                 break;
 
             case 5:
-                // Case 5: desaturation (animated) + micro zoom drift + viewport shrink + padding cycle + tilt + reminder
-                console.log('[Scrollnt] Case 5: Desaturation + Drift + Shrink + Padding + Tilt + Reminder');
+                // Case 5: tilt + padding cycle + viewport shrink + micro zoom drift + desaturation + challenge + ui issue
+                console.log('Case 5');
                 this.applyTiltVideo();
                 this.applyMicroZoomDrift();
                 this.applyDesaturation("animated");
-                this.showReminder();
+                this.challengeManager.checkChallengeTrigger(2);
                 break;
 
             case 6:
-                // Case 6: desaturation (animated) + micro zoom drift + viewport shrink + padding cycle + tilt + hue rotation
-                console.log('[Scrollnt] Case 6: Desaturation + Drift + Shrink + Padding + Tilt + Hue Rotation');
-                this.applyTiltVideo();
-                this.applyMicroZoomDrift();
-                this.applyDesaturation("animated");
-                this.applyHueRotation();
-                break;
-
-            case 7:
-                // Case 7: desaturation (animated) + micro zoom drift + viewport shrink + padding cycle + tilt + hue rotation + challenge
-                console.log('[Scrollnt] Case 7: Desaturation + Drift + Shrink + Padding + Tilt + Hue Rotation + Challenge');
-                this.applyTiltVideo();
-                this.applyMicroZoomDrift();
-                this.applyDesaturation("animated");
-                this.applyHueRotation();
-                this.challengeManager.checkChallengeTrigger(7);
-                break;
-
-            case 8:
-                // Case 8: desaturation (animated) + micro zoom drift + viewport shrink + padding cycle + tilt + hue rotation + reminder 3
-                console.log('[Scrollnt] Case 8: Desaturation + Drift + Shrink + Padding + Tilt + Hue Rotation + Reminder');
-                this.applyTiltVideo();
-                this.applyMicroZoomDrift();
-                this.applyDesaturation("animated");
-                this.applyHueRotation();
-                this.showReminder();
-                break;
-
-            case 9:
-                // Case 9: auto lock
-                console.log('[Scrollnt] Case 9: Auto Lock');
+                // Case 6: Auto Lock
+                console.log('Case 6');
                 this.showAutoLock();
                 break;
         }
@@ -533,20 +504,12 @@ class ScrollntTracker {
     }
 
     applyDesaturation(type = "animated") {
+        // Apply desaturation effect to entire html element
         // type can be "static" (case 2) or "animated" (cases 5-8)
-        const videoContainers = document.querySelectorAll('[class*="DivContainer"]');
-        const desaturateClass = type === "animated"
-            ? "scrollnt-desaturate-video-animated"
-            : "scrollnt-desaturate-video-static";
-
-        videoContainers.forEach(container => {
-            if (container.querySelector('video')) {
-                // Remove both desaturate classes first
-                container.classList.remove("scrollnt-desaturate-video-static", "scrollnt-desaturate-video-animated");
-                // Add the appropriate class
-                container.classList.add(desaturateClass);
-            }
-        });
+        if (type === "animated") {
+            document.documentElement.classList.add("scrollnt-desaturate-animated");
+        }
+        // Note: We're only using animated desaturation now, static is deprecated
     }
 
     applyMicroZoomDrift() {
@@ -555,34 +518,6 @@ class ScrollntTracker {
         document.documentElement.classList.add("scrollnt-zoom-drift");
     }
 
-    applyHueRotation() {
-        // Apply psychedelic hue rotation effect to video elements (Cases 6-8)
-        const videoContainers = document.querySelectorAll('[class*="DivContainer"]');
-        videoContainers.forEach((container) => {
-            const video = container.querySelector("video");
-            if (video) {
-                if (!container.classList.contains("scrollnt-hue-rotation-video")) {
-                    container.classList.add("scrollnt-hue-rotation-video");
-                }
-                if (!video.classList.contains("scrollnt-hue-rotation-video")) {
-                    video.classList.add("scrollnt-hue-rotation-video");
-                    console.log('[Scrollnt] Applied psychedelic hue rotation to video element');
-                }
-            }
-        });
-    }
-
-    removeHueRotation() {
-        // Remove hue rotation from all video container and video elements
-        const videoContainers = document.querySelectorAll('[class*="DivContainer"]');
-        videoContainers.forEach((container) => {
-            container.classList.remove("scrollnt-hue-rotation-video");
-            const video = container.querySelector("video");
-            if (video) {
-                video.classList.remove("scrollnt-hue-rotation-video");
-            }
-        });
-    }
 
     removeTilt() {
         // Remove tilt from all video container elements
@@ -668,6 +603,9 @@ class ScrollntTracker {
     showAutoLock() {
         if (document.querySelector('.scrollnt-autolock')) return;
 
+        // Remove all interventions before showing autolock
+        this.removeInterventions();
+
         const sessionDuration = this.getSessionDuration();
         const reminderCount = chrome.storage.local.get(["reminderCount"]).then(data => data.reminderCount || 0) || 0;
         this.autolockManager.show(this.videoCount, sessionDuration, reminderCount);
@@ -683,13 +621,8 @@ class ScrollntTracker {
     }
 
     removeDesaturation() {
-        const videoContainers = document.querySelectorAll('[class*="DivContainer"]');
-        videoContainers.forEach(container => {
-            container.classList.remove(
-                "scrollnt-desaturate-video-static",
-                "scrollnt-desaturate-video-animated"
-            );
-        });
+        // Remove desaturation from html element
+        document.documentElement.classList.remove("scrollnt-desaturate-animated");
     }
 
     removeInterventions() {
@@ -706,7 +639,6 @@ class ScrollntTracker {
         // Remove all video container interventions
         this.removeTilt();
         this.removeDesaturation();
-        this.removeHueRotation();
     }
 
     startMonitoring() {
