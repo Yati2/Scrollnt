@@ -110,15 +110,18 @@ class ChallengeManager {
     }
 
     loadRandomChallenge(challengeElement) {
-        const challengeTypes = ['memory', 'math', 'typing', 'mole'];
+        const challengeTypes = ['memory', 'math', 'typing', 'mole', 'sarcasticAI'];
         const randomType = challengeTypes[Math.floor(Math.random() * challengeTypes.length)];
         const taskDiv = challengeElement.querySelector("#scrollnt-challenge-task");
         const onComplete = async () => await this.completeChallenge(challengeElement);
 
-        // Mole challenge needs its own wrapper, others use the gradient wrapper
+        // Mole and SarcasticAI challenges need their own wrapper, others use the gradient wrapper
         if (randomType === 'mole') {
             taskDiv.className = "captcha-challenge-wrapper";
             createMoleChallenge(taskDiv, challengeElement, onComplete);
+        } else if (randomType === 'sarcasticAI') {
+            taskDiv.className = "captcha-challenge-wrapper";
+            createSarcasticAIChallenge(taskDiv, challengeElement, onComplete);
         } else {
             // Create gradient wrapper for other challenges
             taskDiv.remove();
