@@ -88,6 +88,23 @@
                 transform: translateY(0);
             }
 
+            .buttonPad {
+                margin-top: 10px;
+            }
+
+            .button-opposite {
+                background: rgba(255, 255, 255, 0.25);
+                color: white;
+                border: 1px solid rgba(255,255,255,0.3);
+                backdrop-filter: blur(8px);
+                -webkit-backdrop-filter: blur(8px);
+                box-shadow: 0 4px 24px 0 rgba(0,0,0,0.10);
+            }
+
+            .button-disabled {
+                cursor: not-allowed;
+            }
+
             .footer {
                 margin-top: 15px;
                 text-align: center;
@@ -112,7 +129,8 @@
 
         <div class="status" id="status">✅ Normal browsing</div>
 
-        <button id="resetBtn">Reset Session</button>
+        <button id="startStopBtn">Start</button>
+        <button id="resetBtn" class="buttonPad">Reset Session</button>   
 
         <div class="footer">Stay mindful of your screen time ✨</div>
         <div class="footer">Max Duration: <span id="maxDuration">X</span></div>

@@ -31,12 +31,37 @@ class ScrollntTracker {
         }
     }
 
-    init() {
+    async init() {
         console.log("Scrollnt initialized on TikTok");
-        this.loadSessionData();
+        await this.loadSessionData();
+        // Only start tracking if sessionPaused is false
+        const data = await chrome.storage.local.get(["sessionPaused"]);
+        if (!data.sessionPaused) {
+            this.startTracking();
+        }
+        // Listen for sessionPaused changes and start/stop tracking accordingly
+        chrome.storage.onChanged.addListener((changes, area) => {
+            if (area === 'local' && changes.sessionPaused) {
+                if (changes.sessionPaused.newValue === false) {
+                    this.startTracking();
+                } else if (changes.sessionPaused.newValue === true) {
+                    this.stopTracking();
+                }
+            }
+        });
+    }
+
+    startTracking() {
         this.trackScrollBehavior();
         this.observeArticles();
         this.startMonitoring();
+    }
+
+    stopTracking() {
+        if (this.checkInterval) clearInterval(this.checkInterval);
+        if (this.intersectionObserver) this.intersectionObserver.disconnect();
+        this.observedArticles.clear();
+        this.viewedArticles.clear();
     }
 
     async loadSessionData() {
@@ -45,21 +70,24 @@ class ScrollntTracker {
                 "sessionStart",
                 "videoCount",
                 "maxDuration",
+                "sessionPaused",
             ]);
             if (data.sessionStart) {
                 this.sessionStart = data.sessionStart;
                 this.videoCount = data.videoCount || 0;
                 if (data.maxDuration) this.maxDuration = data.maxDuration;
-                console.log('[Scrollnt] Loaded session data:', {
-                    sessionStart: new Date(this.sessionStart).toLocaleTimeString(),
-                    videoCount: this.videoCount,
-                    maxDuration: this.maxDuration
-                });
+                // console.log('[Scrollnt] Loaded session data:', {
+                //     sessionStart: new Date(this.sessionStart).toLocaleTimeString(),
+                //     videoCount: this.videoCount,
+                //     maxDuration: this.maxDuration,
+                //     sessionPaused: data.sessionPaused || false
+                // });
             } else {
                 await chrome.storage.local.set({
                     sessionStart: this.sessionStart,
                     videoCount: 0,
                     maxDuration: this.maxDuration,
+                    sessionPaused: true,
                 });
             }
         } catch (error) {
@@ -75,6 +103,7 @@ class ScrollntTracker {
                 videoCount: this.videoCount,
                 lastUpdate: Date.now(),
                 maxDuration: this.maxDuration,
+                sessionPaused: this.sessionPaused,
             });
         } catch (error) {
             console.warn('[Scrollnt] Error saving session data:', error);
@@ -114,26 +143,29 @@ class ScrollntTracker {
     }
 
     observeArticles() {
-        // Find all TikTok articles (each video is wrapped in an article)
-        const articles = document.querySelectorAll("article");
-        articles.forEach(article => {
-            if (!this.observedArticles.has(article)) {
-                this.observedArticles.add(article);
-                this.setupIntersectionObserver(article);
+        chrome.storage.local.get(["sessionPaused"], (data) => {
+            if (data.sessionPaused) return;
+            // Find all TikTok articles (each video is wrapped in an article)
+            const articles = document.querySelectorAll("article");
+            articles.forEach(article => {
+                if (!this.observedArticles.has(article)) {
+                    this.observedArticles.add(article);
+                    this.setupIntersectionObserver(article);
 
-                // Check if article is already visible (in case page loaded with articles in view)
-                const rect = article.getBoundingClientRect();
-                const isVisible = rect.top < window.innerHeight && rect.bottom > 0;
-                const visibleRatio = isVisible ? Math.min(1, (Math.min(rect.bottom, window.innerHeight) - Math.max(rect.top, 0)) / rect.height) : 0;
+                    // Check if article is already visible (in case page loaded with articles in view)
+                    const rect = article.getBoundingClientRect();
+                    const isVisible = rect.top < window.innerHeight && rect.bottom > 0;
+                    const visibleRatio = isVisible ? Math.min(1, (Math.min(rect.bottom, window.innerHeight) - Math.max(rect.top, 0)) / rect.height) : 0;
 
-                if (visibleRatio >= 0.5 && !this.viewedArticles.has(article)) {
-                    // Article is already visible and meets threshold
-                    this.viewedArticles.add(article);
-                    this.videoCount++;
-                    this.saveSessionData();
-                    this.checkInterventionNeeded();
+                    if (visibleRatio >= 0.5 && !this.viewedArticles.has(article)) {
+                        // Article is already visible and meets threshold
+                        this.viewedArticles.add(article);
+                        this.videoCount++;
+                        this.saveSessionData();
+                        this.checkInterventionNeeded();
+                    }
                 }
-            }
+            });
         });
     }
 
@@ -141,16 +173,19 @@ class ScrollntTracker {
         if (!this.intersectionObserver) {
             this.intersectionObserver = new IntersectionObserver(
                 (entries) => {
-                    entries.forEach(entry => {
-                        if (entry.isIntersecting && !this.viewedArticles.has(entry.target)) {
-                            this.viewedArticles.add(entry.target);
-                            // Increment count instead of using Set size to preserve stored count
-                            this.videoCount++;
-                            this.saveSessionData();
-                            this.checkInterventionNeeded();
-                            // Optional: log for debugging
-                            console.log('[Scrollnt] Article viewed. Total viewed:', this.videoCount);
-                        }
+                    chrome.storage.local.get(["sessionPaused"], (data) => {
+                        if (data.sessionPaused) return;
+                        entries.forEach(entry => {
+                            if (entry.isIntersecting && !this.viewedArticles.has(entry.target)) {
+                                this.viewedArticles.add(entry.target);
+                                // Increment count instead of using Set size to preserve stored count
+                                this.videoCount++;
+                                this.saveSessionData();
+                                this.checkInterventionNeeded();
+                                // Optional: log for debugging
+                                console.log('[Scrollnt] Article viewed. Total viewed:', this.videoCount);
+                            }
+                        });
                     });
                 },
                 {
@@ -164,10 +199,12 @@ class ScrollntTracker {
 
 
     getSessionDuration() {
+        if (this.sessionPaused) return 0;
         return Math.floor((Date.now() - this.sessionStart) / 1000 / 60); // minutes
     }
 
     checkInterventionNeeded() {
+        if (this.sessionPaused) return;
         const duration = this.getSessionDuration();
         const md = this.maxDuration;
         if (duration >= md) {
@@ -394,7 +431,9 @@ class ScrollntTracker {
 
     startMonitoring() {
         this.checkInterval = setInterval(() => {
-            this.checkInterventionNeeded();
+            if (!this.sessionPaused) {
+                this.checkInterventionNeeded();
+            }
         }, 30000); // Check every 30 seconds to catch 1.5 and 2-minute intervals accurately
     }
 }
