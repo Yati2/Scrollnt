@@ -9,17 +9,17 @@ function createMoleChallenge(taskDiv, challengeElement, onComplete) {
     const clickedBoxes = new Set();
 
     const container = document.createElement("div");
-    container.className = "mole-challenge-container";
+    container.className = "captcha-challenge-container";
 
     const header = document.createElement("div");
-    header.className = "mole-captcha-header";
+    header.className = "captcha-header";
     const headerText = document.createElement("div");
-    headerText.className = "mole-captcha-header-text";
+    headerText.className = "captcha-header-text";
     headerText.innerHTML = 'Select all images with <strong>moles</strong><br>Click verify once there are none left.';
     header.appendChild(headerText);
 
     const status = document.createElement("div");
-    status.className = "mole-challenge-status";
+    status.className = "captcha-status";
     status.id = "mole-status";
     status.textContent = `${molesCaught} of ${totalMolesNeeded} selected`;
 
@@ -43,7 +43,7 @@ function createMoleChallenge(taskDiv, challengeElement, onComplete) {
     }
 
     const verifyButton = document.createElement("button");
-    verifyButton.className = "scrollnt-challenge-btn";
+    verifyButton.className = "captcha-verify-btn";
     verifyButton.id = "mole-verify-btn";
     verifyButton.textContent = "Verify";
     verifyButton.disabled = true;
@@ -59,11 +59,11 @@ function createMoleChallenge(taskDiv, challengeElement, onComplete) {
     });
 
     const controls = document.createElement("div");
-    controls.className = "mole-captcha-controls";
+    controls.className = "captcha-controls";
 
     const icons = document.createElement("div");
-    icons.className = "mole-captcha-icons";
-    icons.innerHTML = '<span class="mole-icon">↻</span><span class="mole-icon">🔊</span><span class="mole-icon">ℹ</span>';
+    icons.className = "captcha-icons";
+    icons.innerHTML = '<span class="captcha-icon">↻</span><span class="captcha-icon">🔊</span><span class="captcha-icon">ℹ</span>';
 
     controls.appendChild(icons);
     controls.appendChild(verifyButton);

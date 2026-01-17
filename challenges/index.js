@@ -117,7 +117,7 @@ class ChallengeManager {
 
         // Mole challenge needs its own wrapper, others use the gradient wrapper
         if (randomType === 'mole') {
-            taskDiv.className = "mole-challenge-wrapper";
+            taskDiv.className = "captcha-challenge-wrapper";
             createMoleChallenge(taskDiv, challengeElement, onComplete);
         } else {
             // Create gradient wrapper for other challenges
