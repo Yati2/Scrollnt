@@ -10,23 +10,42 @@ class ChallengeManager {
 
     async loadCompletedLevels() {
         try {
-            const data = await chrome.storage.local.get(['completedChallengeLevels']);
-            if (data.completedChallengeLevels && Array.isArray(data.completedChallengeLevels)) {
+            const data = await chrome.storage.local.get([
+                "completedChallengeLevels",
+            ]);
+            if (
+                data.completedChallengeLevels &&
+                Array.isArray(data.completedChallengeLevels)
+            ) {
                 this.completedLevels = new Set(data.completedChallengeLevels);
-                console.log('[Scrollnt] Loaded completed challenge levels:', Array.from(this.completedLevels));
+                console.log(
+                    "[Scrollnt] Loaded completed challenge levels:",
+                    Array.from(this.completedLevels),
+                );
             }
         } catch (error) {
-            console.warn('[Scrollnt] Error loading completed challenge levels:', error);
+            console.warn(
+                "[Scrollnt] Error loading completed challenge levels:",
+                error,
+            );
         }
     }
 
     async saveCompletedLevels() {
         try {
             const levelsArray = Array.from(this.completedLevels);
-            await chrome.storage.local.set({ completedChallengeLevels: levelsArray });
-            console.log('[Scrollnt] Saved completed challenge levels:', levelsArray);
+            await chrome.storage.local.set({
+                completedChallengeLevels: levelsArray,
+            });
+            console.log(
+                "[Scrollnt] Saved completed challenge levels:",
+                levelsArray,
+            );
         } catch (error) {
-            console.warn('[Scrollnt] Error saving completed challenge levels:', error);
+            console.warn(
+                "[Scrollnt] Error saving completed challenge levels:",
+                error,
+            );
         }
     }
 
@@ -48,8 +67,8 @@ class ChallengeManager {
         if (document.querySelector(".scrollnt-challenge")) return;
         this.currentChallengeLevel = level;
         this.removeInterventionsTemporarily();
-        document.body.style.overflow = 'hidden';
-        document.documentElement.style.overflow = 'hidden';
+        document.body.style.overflow = "hidden";
+        document.documentElement.style.overflow = "hidden";
 
         const challenge = document.createElement("div");
         challenge.className = "scrollnt-challenge";
@@ -63,25 +82,27 @@ class ChallengeManager {
     removeInterventionsTemporarily() {
         const html = document.documentElement;
         const interventionClasses = [
-            'scrollnt-viewport-shrink-1',
-            'scrollnt-viewport-shrink-2',
-            'scrollnt-viewport-shrink-3',
-            'scrollnt-desaturate',
-            'scrollnt-zoom-drift'
+            "scrollnt-viewport-shrink-1",
+            "scrollnt-viewport-shrink-2",
+            "scrollnt-viewport-shrink-3",
+            "scrollnt-desaturate",
+            "scrollnt-zoom-drift",
         ];
 
         // Save which classes were present
-        this.savedInterventionClasses = interventionClasses.filter(className =>
-            html.classList.contains(className)
+        this.savedInterventionClasses = interventionClasses.filter(
+            (className) => html.classList.contains(className),
         );
 
         // Remove all intervention classes from html
         html.classList.remove(...interventionClasses);
 
         // Also remove blur from video containers
-        const videoContainers = document.querySelectorAll('[class*="DivContainer"]');
+        const videoContainers = document.querySelectorAll(
+            '[class*="DivContainer"]',
+        );
         this.savedBlurContainers = [];
-        videoContainers.forEach(container => {
+        videoContainers.forEach((container) => {
             if (container.classList.contains("scrollnt-blur-video")) {
                 this.savedBlurContainers.push(container);
                 container.classList.remove("scrollnt-blur-video");
@@ -99,7 +120,7 @@ class ChallengeManager {
 
         // Restore blur on video containers if they had it
         if (this.savedBlurContainers) {
-            this.savedBlurContainers.forEach(container => {
+            this.savedBlurContainers.forEach((container) => {
                 container.classList.add("scrollnt-blur-video");
             });
         }
@@ -110,7 +131,7 @@ class ChallengeManager {
     }
 
     loadRandomChallenge(challengeElement) {
-        const challengeTypes = ['memory', 'math', 'typing', 'mole', 'sarcasticAI', 'youtubeWatch'];
+        const challengeTypes = ['memory', 'math', 'typing', 'mole', 'sarcasticAI', 'youtubeWatch','catgame'];
         
         const randomType = challengeTypes[Math.floor(Math.random() * challengeTypes.length)];
         
@@ -120,11 +141,16 @@ class ChallengeManager {
         // Mole and SarcasticAI challenges need their own wrapper, others use the gradient wrapper
         if (randomType === 'mole') {
             taskDiv.className = "captcha-challenge-wrapper";
+
             createMoleChallenge(taskDiv, challengeElement, onComplete);
         } else if (randomType === 'sarcasticAI') {
             taskDiv.className = "captcha-challenge-wrapper";
             createSarcasticAIChallenge(taskDiv, challengeElement, onComplete);
-        } else if (randomType === 'youtubeWatch') {
+        } else if (randomType === "catgame") {
+            this.tracker.startJumpingGame(challengeElement);
+            return;
+        }
+          else if (randomType === 'youtubeWatch') {
             createYouTubeWatchChallenge(taskDiv, challengeElement, onComplete);
         } else {
             // Create gradient wrapper for other challenges
@@ -143,11 +169,11 @@ class ChallengeManager {
             content.appendChild(taskDiv);
             challengeElement.appendChild(content);
 
-            if (randomType === 'memory') {
+            if (randomType === "memory") {
                 createMemoryGame(taskDiv, challengeElement, onComplete);
-            } else if (randomType === 'math') {
+            } else if (randomType === "math") {
                 createMathChallenge(taskDiv, challengeElement, onComplete);
-            } else if (randomType === 'typing') {
+            } else if (randomType === "typing") {
                 createTypingChallenge(taskDiv, challengeElement, onComplete);
             }
         }
@@ -163,11 +189,10 @@ class ChallengeManager {
         }
 
         // Restore scrolling
-        document.body.style.overflow = '';
-        document.documentElement.style.overflow = '';
+        document.body.style.overflow = "";
+        document.documentElement.style.overflow = "";
 
         // Restore intervention classes that were temporarily removed
         this.restoreInterventions();
     }
 }
-

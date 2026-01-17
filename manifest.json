@@ -31,7 +31,15 @@
     },
     "web_accessible_resources": [
         {
-            "resources": ["assets/mole/mole_sprite.png", "assets/mole/grass.jpeg","cats/**/*", "icons/*", "assets/mole/whacked_mole_sprite.png"],
+       
+            "resources": [
+                "assets/mole/mole_sprite.png",
+                "assets/mole/whacked_mole_sprite.png",
+                "assets/mole/grass.jpeg",
+                "assets/cats/**/**/*",
+                "assets/catgame/*",
+                "assets/icons/*"
+            ],
             "matches": ["*://*.tiktok.com/*"]
         }
     ]
