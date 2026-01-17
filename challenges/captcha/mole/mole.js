@@ -1,5 +1,5 @@
 // Mole Captcha Challenge
-// User must catch 4 moles that appear randomly in 9 boxes
+// User must catch 4 moles that appear randomly in 16 boxes
 
 function createMoleChallenge(taskDiv, challengeElement, onComplete) {
     const totalMolesNeeded = 4;
@@ -27,10 +27,10 @@ function createMoleChallenge(taskDiv, challengeElement, onComplete) {
     grid.className = "mole-challenge-grid";
     grid.id = "mole-grid";
 
-    // Create 9 boxes (3x3 grid)
+    // Create 16 boxes (4x4 grid)
     const grassUrl = chrome.runtime.getURL("assets/mole/grass.jpeg");
     const boxes = [];
-    for (let i = 0; i < 9; i++) {
+    for (let i = 0; i < 16; i++) {
         const box = document.createElement("div");
         box.className = "mole-box";
         box.dataset.index = i;
@@ -133,6 +133,12 @@ function createMoleChallenge(taskDiv, challengeElement, onComplete) {
             const box = boxes[index];
             box.classList.add('mole-hit');
             box.classList.add('mole-caught');
+
+            // Replace mole sprite with whacked mole sprite
+            const moleImg = box.querySelector('.mole-sprite');
+            if (moleImg) {
+                moleImg.src = chrome.runtime.getURL("assets/mole/whacked_mole_sprite.png");
+            }
 
             setTimeout(() => {
                 box.classList.remove('mole-hit');
