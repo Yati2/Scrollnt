@@ -2,8 +2,8 @@
 // Tracks user behavior and applies progressive discouragement
 
 class ScrollntTracker {
-        observedArticles = new Set();
-        viewedArticles = new Set();
+    observedArticles = new Set();
+    viewedArticles = new Set();
     constructor() {
         this.sessionStart = Date.now();
         this.videoCount = 0;
@@ -11,6 +11,8 @@ class ScrollntTracker {
         this.lastSwipeTime = 0;
         this.interventionLevel = 0;
         this.checkInterval = null;
+        this.currentPaddingSide = null;
+        this.lastPaddingCycleTime = 0; // Track when padding was last cycled (in minutes)
     }
 
     init() {
@@ -22,27 +24,40 @@ class ScrollntTracker {
     }
 
     async loadSessionData() {
-        const data = await chrome.storage.local.get([
-            "sessionStart",
-            "videoCount",
-        ]);
-        if (data.sessionStart) {
-            this.sessionStart = data.sessionStart;
-            this.videoCount = data.videoCount || 0;
-        } else {
-            await chrome.storage.local.set({
-                sessionStart: this.sessionStart,
-                videoCount: 0,
-            });
+        try {
+            const data = await chrome.storage.local.get([
+                "sessionStart",
+                "videoCount",
+            ]);
+            if (data.sessionStart) {
+                this.sessionStart = data.sessionStart;
+                this.videoCount = data.videoCount || 0;
+                console.log('[Scrollnt] Loaded session data:', {
+                    sessionStart: new Date(this.sessionStart).toLocaleTimeString(),
+                    videoCount: this.videoCount
+                });
+            } else {
+                await chrome.storage.local.set({
+                    sessionStart: this.sessionStart,
+                    videoCount: 0,
+                });
+            }
+        } catch (error) {
+            console.warn('[Scrollnt] Error loading session data:', error);
+            // Continue with default values
         }
     }
 
     async saveSessionData() {
-        await chrome.storage.local.set({
-            sessionStart: this.sessionStart,
-            videoCount: this.videoCount,
-            lastUpdate: Date.now(),
-        });
+        try {
+            await chrome.storage.local.set({
+                sessionStart: this.sessionStart,
+                videoCount: this.videoCount,
+                lastUpdate: Date.now(),
+            });
+        } catch (error) {
+            console.warn('[Scrollnt] Error saving session data:', error);
+        }
     }
 
     trackScrollBehavior() {
@@ -84,6 +99,19 @@ class ScrollntTracker {
             if (!this.observedArticles.has(article)) {
                 this.observedArticles.add(article);
                 this.setupIntersectionObserver(article);
+
+                // Check if article is already visible (in case page loaded with articles in view)
+                const rect = article.getBoundingClientRect();
+                const isVisible = rect.top < window.innerHeight && rect.bottom > 0;
+                const visibleRatio = isVisible ? Math.min(1, (Math.min(rect.bottom, window.innerHeight) - Math.max(rect.top, 0)) / rect.height) : 0;
+
+                if (visibleRatio >= 0.5 && !this.viewedArticles.has(article)) {
+                    // Article is already visible and meets threshold
+                    this.viewedArticles.add(article);
+                    this.videoCount++;
+                    this.saveSessionData();
+                    this.checkInterventionNeeded();
+                }
             }
         });
     }
@@ -95,7 +123,8 @@ class ScrollntTracker {
                     entries.forEach(entry => {
                         if (entry.isIntersecting && !this.viewedArticles.has(entry.target)) {
                             this.viewedArticles.add(entry.target);
-                            this.videoCount = this.viewedArticles.size;
+                            // Increment count instead of using Set size to preserve stored count
+                            this.videoCount++;
                             this.saveSessionData();
                             this.checkInterventionNeeded();
                             // Optional: log for debugging
@@ -104,7 +133,8 @@ class ScrollntTracker {
                     });
                 },
                 {
-                    threshold: 0.6 // Considered viewed when 60% visible
+                    threshold: 0.5,
+                    rootMargin: '0px'
                 }
             );
         }
@@ -131,6 +161,7 @@ class ScrollntTracker {
         }
 
         this.applyIntervention();
+        this.checkPaddingCycle();
     }
 
     applyIntervention() {
@@ -141,30 +172,96 @@ class ScrollntTracker {
 
         switch (this.interventionLevel) {
             case 1:
-                this.applyViewportShrink(container);
-                this.applyDesaturation(container);
+                this.applyViewportShrink();
+                this.removePadding(); // Remove padding at level 1
+                // this.applyDesaturation(container);
                 break;
             case 2:
-                this.applyViewportShrink(container);
-                this.applyDesaturation(container);
-                this.applyMicroZoomDrift(container);
-                this.applyBlur(container);
-                this.showReminder();
+                this.applyViewportShrink();
+                this.applyViewportPadding();
+                // this.applyDesaturation(container);
+                // this.applyMicroZoomDrift(container);
+                // this.applyBlur(container);
+                // this.showReminder();
                 break;
             case 3:
-                this.applyViewportShrink(container);
-                this.applyDesaturation(container);
-                this.applyMicroZoomDrift(container);
-                this.applyBlur(container);
-                this.showChallenge();
+                this.applyViewportShrink();
+                this.applyViewportPadding();
+                // this.applyDesaturation(container);
+                // this.applyMicroZoomDrift(container);
+                // this.applyBlur(container);
+                // this.showChallenge();
                 break;
             default:
-                this.removeInterventions(container);
+                this.removeInterventions();
         }
     }
 
-    applyViewportShrink(element) {
-        element.classList.add("scrollnt-viewport-shrink");
+    applyViewportShrink() {
+        // Remove all shrink classes first
+        document.documentElement.classList.remove(
+            "scrollnt-viewport-shrink-1",
+            "scrollnt-viewport-shrink-2",
+            "scrollnt-viewport-shrink-3"
+        );
+
+        // Apply the appropriate shrink level based on intervention level
+        const shrinkClass = `scrollnt-viewport-shrink-${this.interventionLevel}`;
+        document.documentElement.classList.add(shrinkClass);
+    }
+
+    checkPaddingCycle() {
+        const duration = this.getSessionDuration();
+
+        // Padding starts at 1.5 minutes and cycles every 2 minutes
+        if (duration >= 1.5) {
+            // Calculate which 2-minute cycle we're in (starting from 1.5 minutes)
+            // Cycle 0: 1.5-3.5 min, Cycle 1: 3.5-5.5 min, Cycle 2: 5.5-7.5 min, etc.
+            const cycleStart = 1.5;
+            const cycleDuration = 2.0;
+            const currentCycle = Math.floor((duration - cycleStart) / cycleDuration);
+            const lastCycle = this.lastPaddingCycleTime >= cycleStart
+                ? Math.floor((this.lastPaddingCycleTime - cycleStart) / cycleDuration)
+                : -1;
+
+            // If we're in a new cycle, or haven't initialized yet, cycle the padding
+            if (currentCycle > lastCycle || this.currentPaddingSide === null) {
+                this.cyclePadding();
+                this.lastPaddingCycleTime = duration;
+            }
+        } else if (duration < 1.5) {
+            // Remove padding if we're below 1.5 minutes
+            this.removePadding();
+            this.currentPaddingSide = null;
+            this.lastPaddingCycleTime = 0;
+        }
+    }
+
+    cyclePadding() {
+        // Remove all padding classes
+        document.documentElement.classList.remove(
+            "scrollnt-viewport-padding-top",
+            "scrollnt-viewport-padding-bottom"
+        );
+
+        // Toggle between top and bottom
+        if (this.currentPaddingSide === 'top') {
+            this.currentPaddingSide = 'bottom';
+        } else {
+            this.currentPaddingSide = 'top';
+        }
+
+        const paddingClass = `scrollnt-viewport-padding-${this.currentPaddingSide}`;
+        document.documentElement.classList.add(paddingClass);
+
+        const duration = this.getSessionDuration();
+        console.log(`[Scrollnt] Padding cycled to: ${this.currentPaddingSide} (at ${duration.toFixed(1)} minutes)`);
+    }
+
+    applyViewportPadding() {
+        // This method is called from applyIntervention, but actual padding logic
+        // is handled in checkPaddingCycle which is called from checkInterventionNeeded
+        // This method is kept for consistency with the intervention structure
     }
 
     applyDesaturation(element) {
@@ -239,9 +336,26 @@ class ScrollntTracker {
         taskDiv.innerHTML = `<p><strong>${randomChallenge}</strong></p>`;
     }
 
-    removeInterventions(element) {
-        element.classList.remove(
-            "scrollnt-viewport-shrink",
+    removePadding() {
+        document.documentElement.classList.remove(
+            "scrollnt-viewport-padding-top",
+            "scrollnt-viewport-padding-bottom"
+        );
+    }
+
+    removeInterventions() {
+        const container =
+            document.querySelector(
+                '[data-e2e="recommend-list-item-container"]',
+            ) || document.body;
+
+        document.documentElement.classList.remove(
+            "scrollnt-viewport-shrink-1",
+            "scrollnt-viewport-shrink-2",
+            "scrollnt-viewport-shrink-3"
+        );
+        this.removePadding();
+        container.classList.remove(
             "scrollnt-desaturate",
             "scrollnt-zoom-drift",
             "scrollnt-blur",
@@ -251,7 +365,7 @@ class ScrollntTracker {
     startMonitoring() {
         this.checkInterval = setInterval(() => {
             this.checkInterventionNeeded();
-        }, 60000); // Check every minute
+        }, 30000); // Check every 30 seconds to catch 1.5 and 2-minute intervals accurately
     }
 }
 
