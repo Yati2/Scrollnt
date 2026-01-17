@@ -265,14 +265,16 @@ class ScrollntTracker {
         if (document.querySelector(".scrollnt-challenge")) return;
         const duration = this.getSessionDuration();
         const md = this.maxDuration;
+        const previousLevel = this.interventionLevel;
+
         if (duration >= md) {
             this.interventionLevel = 9; // Full Lockdown
         } else if (duration >= (5 / 6) * md) {
-            this.interventionLevel = 8; // Viewport shrink + padding + desaturation + zoom drift + friction + Blur + Reminder 3
+            this.interventionLevel = 8; // Viewport shrink + padding + desaturation + zoom drift + Hue Rotation + Reminder 3
         } else if (duration >= (9 / 12) * md) {
-            this.interventionLevel = 7; // Viewport shrink + padding + desaturation + zoom drift + friction + Blur + Challenge 2
+            this.interventionLevel = 7; // Viewport shrink + padding + desaturation + zoom drift + Hue Rotation + Challenge 2
         } else if (duration >= (4 / 6) * md) {
-            this.interventionLevel = 6; // Viewport shrink + padding + desaturation + zoom drift + friction + Blur
+            this.interventionLevel = 6; // Viewport shrink + padding + desaturation + zoom drift + Hue Rotation
         } else if (duration >= (7 / 12) * md) {
             this.interventionLevel = 5; // Viewport shrink + padding + desaturation + zoom drift + friction + Reminder 2
         } else if (duration >= (3 / 6) * md) {
@@ -287,6 +289,12 @@ class ScrollntTracker {
         } else {
             this.interventionLevel = 0;
         }
+
+        // Log when intervention level changes
+        if (previousLevel !== this.interventionLevel) {
+            console.log(`[Scrollnt] ⚠️ Intervention level changed: ${previousLevel} → ${this.interventionLevel} (Duration: ${duration.toFixed(2)} min / Max: ${md} min)`);
+        }
+
         this.applyIntervention();
         this.checkPaddingCycle();
         this.checkShrinkCycle();
@@ -302,6 +310,7 @@ class ScrollntTracker {
             ) || document.body;
 
         if (this.interventionLevel === 0) {
+            console.log('[Scrollnt] Case 0: No interventions - Removing all effects');
             this.removeInterventions();
             return;
         }
@@ -312,72 +321,73 @@ class ScrollntTracker {
         // Apply other interventions based on level
         switch (this.interventionLevel) {
             case 1:
-                // Padding handled by checkPaddingCycle
-                // this.challengeManager.checkChallengeTrigger(1);
+                // Case 1: padding cycle + viewport shrink (handled above)
+                console.log('[Scrollnt] Case 1: Padding cycle + Viewport shrink');
                 break;
+
             case 2:
-                // Padding handled by checkPaddingCycle
-                this.applyDesaturation(container);
-                this.showReminder();
-                // Scroll friction temporarily disabled - needs better implementation
-                // this.applyScrollFriction();
-                // this.challengeManager.checkChallengeTrigger(2);
+                // Case 2: tilt + padding cycle + viewport shrink + (reminder commented for now)
+                console.log('[Scrollnt] Case 2: Tilt + Padding + Shrink');
+                this.applyTiltVideo();
+                // this.showReminder(); // Commented as requested
                 break;
+
             case 3:
-                // Padding handled by checkPaddingCycle
-                this.applyDesaturation(container);
-                this.applyMicroZoomDrift(container);
-                // Scroll friction temporarily disabled - needs better implementation
-                // this.applyScrollFriction();
-                // this.challengeManager.checkChallengeTrigger(3);
+                // Case 3: tilt + padding cycle + viewport shrink + micro zoom drift
+                console.log('[Scrollnt] Case 3: Tilt + Padding + Shrink + Micro Zoom Drift');
+                this.applyTiltVideo();
+                this.applyMicroZoomDrift();
                 break;
+
             case 4:
-                // Padding handled by checkPaddingCycle
-                this.applyDesaturation(container);
-                this.applyMicroZoomDrift(container);
-                // Scroll friction temporarily disabled - needs better implementation
-                // this.applyScrollFriction();
+                // Case 4: challenge + tilt + padding cycle + viewport shrink + micro zoom drift
+                console.log('[Scrollnt] Case 4: Challenge + Tilt + Padding + Shrink + Drift');
+                this.applyTiltVideo();
+                this.applyMicroZoomDrift();
                 this.challengeManager.checkChallengeTrigger(4);
                 break;
+
             case 5:
-                // Padding handled by checkPaddingCycle
-                this.applyDesaturation(container);
-                this.applyMicroZoomDrift(container);
-                // Scroll friction temporarily disabled - needs better implementation
-                // this.applyScrollFriction();
-                // this.challengeManager.checkChallengeTrigger(5);
+                // Case 5: desaturation (animated) + micro zoom drift + viewport shrink + padding cycle + tilt + reminder
+                console.log('[Scrollnt] Case 5: Desaturation + Drift + Shrink + Padding + Tilt + Reminder');
+                this.applyTiltVideo();
+                this.applyMicroZoomDrift();
+                this.applyDesaturation("animated");
                 this.showReminder();
                 break;
+
             case 6:
-                // Padding handled by checkPaddingCycle
-                this.applyDesaturation(container);
-                this.applyMicroZoomDrift(container);
-                this.applyBlur(container);
-                // Scroll friction temporarily disabled - needs better implementation
-                // this.applyScrollFriction();
-                // this.challengeManager.checkChallengeTrigger(6);
+                // Case 6: desaturation (animated) + micro zoom drift + viewport shrink + padding cycle + tilt + hue rotation
+                console.log('[Scrollnt] Case 6: Desaturation + Drift + Shrink + Padding + Tilt + Hue Rotation');
+                this.applyTiltVideo();
+                this.applyMicroZoomDrift();
+                this.applyDesaturation("animated");
+                this.applyHueRotation();
                 break;
+
             case 7:
-                // Padding handled by checkPaddingCycle
-                this.applyDesaturation(container);
-                this.applyMicroZoomDrift(container);
-                this.applyBlur(container);
-                // Scroll friction temporarily disabled - needs better implementation
-                // this.applyScrollFriction();
+                // Case 7: desaturation (animated) + micro zoom drift + viewport shrink + padding cycle + tilt + hue rotation + challenge
+                console.log('[Scrollnt] Case 7: Desaturation + Drift + Shrink + Padding + Tilt + Hue Rotation + Challenge');
+                this.applyTiltVideo();
+                this.applyMicroZoomDrift();
+                this.applyDesaturation("animated");
+                this.applyHueRotation();
                 this.challengeManager.checkChallengeTrigger(7);
                 break;
+
             case 8:
-                // Padding handled by checkPaddingCycle
-                this.applyDesaturation(container);
-                this.applyMicroZoomDrift(container);
-                this.applyBlur(container);
-                // Scroll friction temporarily disabled - needs better implementation
-                // this.applyScrollFriction();
-                // this.challengeManager.checkChallengeTrigger(8);
+                // Case 8: desaturation (animated) + micro zoom drift + viewport shrink + padding cycle + tilt + hue rotation + reminder 3
+                console.log('[Scrollnt] Case 8: Desaturation + Drift + Shrink + Padding + Tilt + Hue Rotation + Reminder');
+                this.applyTiltVideo();
+                this.applyMicroZoomDrift();
+                this.applyDesaturation("animated");
+                this.applyHueRotation();
                 this.showReminder();
                 break;
+
             case 9:
-                // Full Lockdown - all interventions
+                // Case 9: auto lock
+                console.log('[Scrollnt] Case 9: Auto Lock');
                 this.showAutoLock();
                 break;
         }
@@ -508,47 +518,83 @@ class ScrollntTracker {
         // This method is kept for consistency with the intervention structure
     }
 
-    applyDesaturation(element) {
+    applyTiltVideo() {
+        // Apply tilt effect to video containers (Cases 2-8) with randomized rotation
         const videoContainers = document.querySelectorAll('[class*="DivContainer"]');
-        const desaturateClass = this.interventionLevel === 5
-            ? "scrollnt-desaturate-video-2"
-            : "scrollnt-desaturate-video-1";
+        videoContainers.forEach(container => {
+            if (container.querySelector('video') && !container.classList.contains('scrollnt-tilt-video')) {
+                container.classList.add('scrollnt-tilt-video');
+                // Randomize tilt between -3 and +3 degrees
+                const randomTilt = (Math.random() * 6 - 3).toFixed(2);
+                container.style.setProperty('--scrollnt-tilt-angle', `${randomTilt}deg`);
+                console.log(`[Scrollnt] Applied random tilt: ${randomTilt}deg to video container`);
+            }
+        });
+    }
+
+    applyDesaturation(type = "animated") {
+        // type can be "static" (case 2) or "animated" (cases 5-8)
+        const videoContainers = document.querySelectorAll('[class*="DivContainer"]');
+        const desaturateClass = type === "animated"
+            ? "scrollnt-desaturate-video-animated"
+            : "scrollnt-desaturate-video-static";
 
         videoContainers.forEach(container => {
-            if (container.querySelector('video') && !container.classList.contains(desaturateClass)) {
-                // Remove the other desaturate class if present
-                container.classList.remove("scrollnt-desaturate-video-1", "scrollnt-desaturate-video-2");
+            if (container.querySelector('video')) {
+                // Remove both desaturate classes first
+                container.classList.remove("scrollnt-desaturate-video-static", "scrollnt-desaturate-video-animated");
+                // Add the appropriate class
                 container.classList.add(desaturateClass);
             }
         });
     }
 
-    applyMicroZoomDrift(element) {
-        element.classList.add("scrollnt-zoom-drift");
+    applyMicroZoomDrift() {
+        // Apply zoom drift to html element (Cases 3-8)
+        // The CSS will handle combining this with the shrink level
+        document.documentElement.classList.add("scrollnt-zoom-drift");
     }
 
-    applyBlur(element) {
-        const videoContainers = document.querySelectorAll(
-            '[class*="DivContainer"]',
-        );
+    applyHueRotation() {
+        // Apply psychedelic hue rotation effect to video elements (Cases 6-8)
+        const videoContainers = document.querySelectorAll('[class*="DivContainer"]');
         videoContainers.forEach((container) => {
-            if (
-                container.querySelector("video") &&
-                !container.classList.contains("scrollnt-blur-video")
-            ) {
-                container.classList.add("scrollnt-blur-video");
+            const video = container.querySelector("video");
+            if (video) {
+                if (!container.classList.contains("scrollnt-hue-rotation-video")) {
+                    container.classList.add("scrollnt-hue-rotation-video");
+                }
+                if (!video.classList.contains("scrollnt-hue-rotation-video")) {
+                    video.classList.add("scrollnt-hue-rotation-video");
+                    console.log('[Scrollnt] Applied psychedelic hue rotation to video element');
+                }
             }
         });
     }
 
-    removeBlur() {
-        // Remove blur from all video container elements
-        const videoContainers = document.querySelectorAll(
-            '[class*="DivContainer"]',
-        );
+    removeHueRotation() {
+        // Remove hue rotation from all video container and video elements
+        const videoContainers = document.querySelectorAll('[class*="DivContainer"]');
         videoContainers.forEach((container) => {
-            container.classList.remove("scrollnt-blur-video");
+            container.classList.remove("scrollnt-hue-rotation-video");
+            const video = container.querySelector("video");
+            if (video) {
+                video.classList.remove("scrollnt-hue-rotation-video");
+            }
         });
+    }
+
+    removeTilt() {
+        // Remove tilt from all video container elements
+        const videoContainers = document.querySelectorAll('[class*="DivContainer"]');
+        videoContainers.forEach((container) => {
+            container.classList.remove("scrollnt-tilt-video");
+        });
+    }
+
+    removeMicroZoomDrift() {
+        // Remove zoom drift from html element
+        document.documentElement.classList.remove("scrollnt-zoom-drift");
     }
 
     showReminder() {
@@ -639,24 +685,28 @@ class ScrollntTracker {
     removeDesaturation() {
         const videoContainers = document.querySelectorAll('[class*="DivContainer"]');
         videoContainers.forEach(container => {
-            container.classList.remove("scrollnt-desaturate-video-1", "scrollnt-desaturate-video-2");
+            container.classList.remove(
+                "scrollnt-desaturate-video-static",
+                "scrollnt-desaturate-video-animated"
+            );
         });
     }
 
     removeInterventions() {
-        const container =
-            document.querySelector(
-                '[data-e2e="recommend-list-item-container"]',
-            ) || document.body;
-
+        // Remove all viewport-level interventions
         document.documentElement.classList.remove(
             "scrollnt-viewport-shrink-1",
             "scrollnt-viewport-shrink-2",
-            "scrollnt-viewport-shrink-3",
+            "scrollnt-viewport-shrink-3"
         );
+
         this.removePadding();
-        this.removeBlur();
-        container.classList.remove("scrollnt-zoom-drift");
+        this.removeMicroZoomDrift();
+
+        // Remove all video container interventions
+        this.removeTilt();
+        this.removeDesaturation();
+        this.removeHueRotation();
     }
 
     startMonitoring() {
