@@ -31,7 +31,6 @@ class ChallengeManager {
     }
 
     async checkChallengeTrigger(level) {
-        // Wait for completed levels to load if still loading
         await this.loadingPromise;
 
         // Only show challenge once per level (2, 5, 8)
@@ -47,42 +46,17 @@ class ChallengeManager {
 
     showChallenge(level) {
         if (document.querySelector(".scrollnt-challenge")) return;
-
-        // Store the level for this challenge
         this.currentChallengeLevel = level;
-
-        // Temporarily remove intervention classes from html to show clean challenge
         this.removeInterventionsTemporarily();
-
-        // Block scrolling
         document.body.style.overflow = 'hidden';
         document.documentElement.style.overflow = 'hidden';
 
         const challenge = document.createElement("div");
         challenge.className = "scrollnt-challenge";
-
-        const content = document.createElement("div");
-        content.className = "scrollnt-challenge-content";
-
-        const h2 = document.createElement("h2");
-        h2.textContent = "Time for a Challenge! 🎯";
-
-        const p1 = document.createElement("p");
-        p1.textContent = `You've been scrolling for ${this.tracker.getSessionDuration()} minutes`;
-
-        const p2 = document.createElement("p");
-        p2.textContent = "Complete a quick challenge to continue:";
-
         const taskDiv = document.createElement("div");
         taskDiv.id = "scrollnt-challenge-task";
-
-        content.appendChild(h2);
-        content.appendChild(p1);
-        content.appendChild(p2);
-        content.appendChild(taskDiv);
-        challenge.appendChild(content);
+        challenge.appendChild(taskDiv);
         document.body.appendChild(challenge);
-
         this.loadRandomChallenge(challenge);
     }
 
@@ -136,20 +110,39 @@ class ChallengeManager {
     }
 
     loadRandomChallenge(challengeElement) {
-        const challengeTypes = ['memory', 'math', 'typing'];
+        const challengeTypes = ['memory', 'math', 'typing', 'mole'];
         const randomType = challengeTypes[Math.floor(Math.random() * challengeTypes.length)];
         const taskDiv = challengeElement.querySelector("#scrollnt-challenge-task");
+        const onComplete = async () => await this.completeChallenge(challengeElement);
 
-        const onComplete = async () => {
-            await this.completeChallenge(challengeElement);
-        };
+        // Mole challenge needs its own wrapper, others use the gradient wrapper
+        if (randomType === 'mole') {
+            taskDiv.className = "mole-challenge-wrapper";
+            createMoleChallenge(taskDiv, challengeElement, onComplete);
+        } else {
+            // Create gradient wrapper for other challenges
+            taskDiv.remove();
+            const content = document.createElement("div");
+            content.className = "scrollnt-challenge-content";
+            const h2 = document.createElement("h2");
+            h2.textContent = "Time for a Challenge! 🎯";
+            const p1 = document.createElement("p");
+            p1.textContent = `You've been scrolling for ${this.tracker.getSessionDuration()} minutes`;
+            const p2 = document.createElement("p");
+            p2.textContent = "Complete a quick challenge to continue:";
+            content.appendChild(h2);
+            content.appendChild(p1);
+            content.appendChild(p2);
+            content.appendChild(taskDiv);
+            challengeElement.appendChild(content);
 
-        if (randomType === 'memory') {
-            createMemoryGame(taskDiv, challengeElement, onComplete);
-        } else if (randomType === 'math') {
-            createMathChallenge(taskDiv, challengeElement, onComplete);
-        } else if (randomType === 'typing') {
-            createTypingChallenge(taskDiv, challengeElement, onComplete);
+            if (randomType === 'memory') {
+                createMemoryGame(taskDiv, challengeElement, onComplete);
+            } else if (randomType === 'math') {
+                createMathChallenge(taskDiv, challengeElement, onComplete);
+            } else if (randomType === 'typing') {
+                createTypingChallenge(taskDiv, challengeElement, onComplete);
+            }
         }
     }
 
