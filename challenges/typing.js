@@ -2,7 +2,30 @@
 // User must type a word backwards
 
 function createTypingChallenge(taskDiv, challengeElement, onComplete) {
-    const word = 'productivity';
+    const words = [
+        'productivity',
+        'challenge',
+        'keyboard',
+        'computer',
+        'internet',
+        'software',
+        'hardware',
+        'algorithm',
+        'function',
+        'variable',
+        'programming',
+        'developer',
+        'application',
+        'interface',
+        'database',
+        'security',
+        'password',
+        'username',
+        'email',
+        'website'
+    ];
+
+    const word = words[Math.floor(Math.random() * words.length)];
     const targetWord = word.split('').reverse().join('');
     let userInput = '';
 
@@ -21,10 +44,10 @@ function createTypingChallenge(taskDiv, challengeElement, onComplete) {
 
     const display = document.createElement("div");
     display.className = "typing-display";
-    const targetDisplay = document.createElement("span");
-    targetDisplay.className = "typing-target";
-    targetDisplay.textContent = targetWord;
-    display.appendChild(targetDisplay);
+    const userInputDisplay = document.createElement("span");
+    userInputDisplay.className = "typing-user-input";
+    userInputDisplay.textContent = "";
+    display.appendChild(userInputDisplay);
 
     const input = document.createElement("input");
     input.type = "text";
@@ -50,6 +73,9 @@ function createTypingChallenge(taskDiv, challengeElement, onComplete) {
     const updateDisplay = () => {
         userInput = input.value.toLowerCase();
 
+        // Show what the user is typing
+        userInputDisplay.textContent = userInput || '';
+
         if (userInput === targetWord) {
             feedback.textContent = '✅ Correct! Well done!';
             feedback.style.color = '#4ECDC4';
@@ -59,22 +85,22 @@ function createTypingChallenge(taskDiv, challengeElement, onComplete) {
                 onComplete();
             }, 1500);
         } else if (targetWord.startsWith(userInput)) {
-            // Show progress
-            const remaining = targetWord.slice(userInput.length);
-            targetDisplay.textContent = '';
-            const correctSpan = document.createElement("span");
-            correctSpan.style.color = '#4ECDC4';
-            correctSpan.textContent = userInput;
-            targetDisplay.appendChild(correctSpan);
-            targetDisplay.appendChild(document.createTextNode(remaining));
-            feedback.textContent = '';
-        } else {
+            // Show progress - correct so far
+            userInputDisplay.style.color = '#4ECDC4';
+            feedback.textContent = `Good! ${userInput.length}/${targetWord.length} characters correct`;
+            feedback.style.color = '#4ECDC4';
+        } else if (userInput.length > 0) {
             // Wrong character
-            targetDisplay.textContent = targetWord;
+            userInputDisplay.style.color = '#FF6B6B';
             feedback.textContent = '❌ Wrong! Start over.';
             feedback.style.color = '#FF6B6B';
             input.value = '';
             userInput = '';
+            userInputDisplay.textContent = '';
+        } else {
+            // Empty input
+            userInputDisplay.style.color = 'white';
+            feedback.textContent = '';
         }
     };
 

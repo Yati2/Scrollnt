@@ -140,10 +140,12 @@ class ChallengeManager {
 
         // Mole and SarcasticAI challenges need their own wrapper, others use the gradient wrapper
         if (randomType === 'mole') {
+            challengeElement.classList.add('scrollnt-challenge-captcha');
             taskDiv.className = "captcha-challenge-wrapper";
 
             createMoleChallenge(taskDiv, challengeElement, onComplete);
         } else if (randomType === 'sarcasticAI') {
+            challengeElement.classList.add('scrollnt-challenge-captcha');
             taskDiv.className = "captcha-challenge-wrapper";
             createSarcasticAIChallenge(taskDiv, challengeElement, onComplete);
         } else if (randomType === "catgame") {
