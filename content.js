@@ -173,24 +173,18 @@ class ScrollntTracker {
         switch (this.interventionLevel) {
             case 1:
                 this.applyViewportShrink();
-                this.removePadding(); // Remove padding at level 1
-                // this.applyDesaturation(container);
+                this.removePadding();
                 break;
             case 2:
                 this.applyViewportShrink();
                 this.applyViewportPadding();
-                // this.applyDesaturation(container);
-                // this.applyMicroZoomDrift(container);
-                // this.applyBlur(container);
-                // this.showReminder();
+                this.applyDesaturation(container);
                 break;
             case 3:
                 this.applyViewportShrink();
                 this.applyViewportPadding();
-                // this.applyDesaturation(container);
-                // this.applyMicroZoomDrift(container);
-                // this.applyBlur(container);
-                // this.showChallenge();
+                this.applyDesaturation(container);
+                this.applyMicroZoomDrift(container);
                 break;
             default:
                 this.removeInterventions();
