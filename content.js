@@ -284,7 +284,7 @@ class ScrollntTracker {
         switch (this.interventionLevel) {
             case 1:
                 // Padding handled by checkPaddingCycle
-                this.challengeManager.checkChallengeTrigger(1);
+                // this.challengeManager.checkChallengeTrigger(1);
                 break;
             case 2:
                 // Padding handled by checkPaddingCycle
@@ -292,7 +292,7 @@ class ScrollntTracker {
                 this.showReminder();
                 // Scroll friction temporarily disabled - needs better implementation
                 // this.applyScrollFriction();
-                this.challengeManager.checkChallengeTrigger(2);
+                // this.challengeManager.checkChallengeTrigger(2);
                 break;
             case 3:
                 // Padding handled by checkPaddingCycle
@@ -300,7 +300,7 @@ class ScrollntTracker {
                 this.applyMicroZoomDrift(container);
                 // Scroll friction temporarily disabled - needs better implementation
                 // this.applyScrollFriction();
-                this.challengeManager.checkChallengeTrigger(3);
+                // this.challengeManager.checkChallengeTrigger(3);
                 break;
             case 4:
                 // Padding handled by checkPaddingCycle
@@ -316,7 +316,7 @@ class ScrollntTracker {
                 this.applyMicroZoomDrift(container);
                 // Scroll friction temporarily disabled - needs better implementation
                 // this.applyScrollFriction();
-                this.challengeManager.checkChallengeTrigger(5);
+                // this.challengeManager.checkChallengeTrigger(5);
                 this.showReminder();
                 break;
             case 6:
@@ -326,7 +326,7 @@ class ScrollntTracker {
                 this.applyBlur(container);
                 // Scroll friction temporarily disabled - needs better implementation
                 // this.applyScrollFriction();
-                this.challengeManager.checkChallengeTrigger(6);
+                // this.challengeManager.checkChallengeTrigger(6);
                 break;
             case 7:
                 // Padding handled by checkPaddingCycle
@@ -344,16 +344,16 @@ class ScrollntTracker {
                 this.applyBlur(container);
                 // Scroll friction temporarily disabled - needs better implementation
                 // this.applyScrollFriction();
-                this.challengeManager.checkChallengeTrigger(8);
+                // this.challengeManager.checkChallengeTrigger(8);
                 this.showReminder();
                 break;
             case 9:
                 // Full Lockdown - all interventions
                 // Padding handled by checkPaddingCycle
-                this.applyDesaturation();
-                this.applyMicroZoomDrift(container);
-                this.applyBlur(container);
-                this.challengeManager.checkChallengeTrigger(9);
+                // this.applyDesaturation();
+                // this.applyMicroZoomDrift(container);
+                // this.applyBlur(container);
+                // this.challengeManager.checkChallengeTrigger(9);
                 break;
         }
     }
@@ -498,14 +498,14 @@ class ScrollntTracker {
     }
 
     showReminder() {
-        const sessionDuration = this.getSessionDuration();
+        if (document.querySelector('.scrollnt-reminder')) return;
 
+        const sessionDuration = this.getSessionDuration();
         const reminderCount = chrome.storage.local.get(["reminderCount"]).then(data => data.reminderCount || 0) || 0;
         if (reminderCount <= 2) {
             this.reminderCount = reminderCount + 1;
             chrome.storage.local.set({ reminderCount: this.reminderCount });
         }
-
         this.reminderCardManager.show(this.videoCount, sessionDuration, this.reminderCount);
     }
 

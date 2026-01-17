@@ -33,7 +33,7 @@ class ChallengeManager {
     async checkChallengeTrigger(level) {
         await this.loadingPromise;
 
-        // Only show challenge once per level (2, 5, 8)
+        // Only show challenge once per level (4, 7, 9)
         if (this.completedLevels.has(level)) {
             return;
         }
@@ -110,8 +110,10 @@ class ChallengeManager {
     }
 
     loadRandomChallenge(challengeElement) {
-        const challengeTypes = ['memory', 'math', 'typing', 'mole', 'sarcasticAI'];
-        const randomType = challengeTypes[Math.floor(Math.random() * challengeTypes.length)];
+        const challengeTypes = ['memory', 'math', 'typing', 'mole', 'sarcasticAI', 'youtubeWatch'];
+        
+        // const randomType = challengeTypes[Math.floor(Math.random() * challengeTypes.length)];
+        const randomType = 'youtubeWatch'; // For testing only
         const taskDiv = challengeElement.querySelector("#scrollnt-challenge-task");
         const onComplete = async () => await this.completeChallenge(challengeElement);
 
@@ -122,6 +124,8 @@ class ChallengeManager {
         } else if (randomType === 'sarcasticAI') {
             taskDiv.className = "captcha-challenge-wrapper";
             createSarcasticAIChallenge(taskDiv, challengeElement, onComplete);
+        } else if (randomType === 'youtubeWatch') {
+            createYouTubeWatchChallenge(taskDiv, challengeElement, onComplete);
         } else {
             // Create gradient wrapper for other challenges
             taskDiv.remove();
