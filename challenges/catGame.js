@@ -55,11 +55,14 @@ class CatJumpingGame {
                 y: 100,
                 width: 90,
                 height: 90,
-                velocityX: 0.2,
+                velocityX: 0.4,
                 velocityY: 0,
+
                 gravity: 0.8,
-                jumpPower: -16,
+                jumpPower: -20,
                 isJumping: false,
+                landingX: null,
+                invincibleFrames: 0,
             },
             obstacles: [],
             obstacleWidth: 50,
@@ -67,8 +70,28 @@ class CatJumpingGame {
             goalX: 0,
         };
 
-        // Calculate ground position (same as obstacles - 20px above canvas base)
-        game.groundY = canvas.height - 400;
+        // Collision tuning: shrink the cat and stone hitboxes so "dying" feels fair
+        // (Sprites have a lot of transparent padding)
+        const catHitbox = {
+            offsetX: 20,
+            offsetY: 25,
+            width: 50,
+            height: 45,
+        };
+
+        const stoneHitboxInset = {
+            left: 40,
+            right: 15,
+            top: 12,
+            bottom: 10,
+        };
+
+        // Ground alignment
+        // `groundLevel` is the Y position of the ground line (20px above canvas bottom)
+        // `game.groundY` is the TOP Y position where the cat sprite is drawn.
+        const groundLevel = canvas.height - 20;
+        const catFootOffset = 35; // lowers sprite to account for transparent padding
+        game.groundY = groundLevel - game.cat.height + catFootOffset;
         game.cat.y = game.groundY;
         game.goalX = canvas.width - 100;
 
@@ -138,7 +161,7 @@ class CatJumpingGame {
         };
 
         catImages.walking.src = basePath + "walking.png";
-        catImages.jumping.src = basePath + "pink rosado saltando .gif";
+        catImages.jumping.src = basePath + "jumping.png";
         catImages.idle.src = basePath + "pink respirando - ropa.gif";
         catImages.win.src = basePath + "pink volantin.gif";
 
@@ -149,6 +172,13 @@ class CatJumpingGame {
         const spriteWidth = 62;
         const spriteHeight = 62;
         const totalFrames = 8;
+
+        // Sprite sheet animation for jumping
+        let jumpingFrame = 0;
+        let jumpingFrameCounter = 0;
+        const jumpingTotalFrames = 8; // 8 frames for jumping
+        const jumpingSpriteWidth = 60;
+        const jumpingSpriteHeight = 62;
 
         let currentCatImage = catImages.walking;
 
@@ -166,23 +196,51 @@ class CatJumpingGame {
         };
 
         // Create 4 stationary obstacles with random sizes on the ground
-        const obstaclePositions = [150, 300, 500, 650];
+        const obstaclePositions = [150, 400, 650];
         game.obstacles = obstaclePositions.map((x) => {
             const sizeVariation = 40 + Math.random() * 50; // Random size between 40-90px
             return {
                 x: x,
-                y: canvas.height - 20 - sizeVariation, // Same ground level as cat (canvas bottom)
+                y: groundLevel - sizeVariation, // use the same ground reference
                 width: sizeVariation,
                 height: sizeVariation,
             };
         });
 
-        // Input handling
         const jump = () => {
             if (!game.cat.isJumping) {
                 game.cat.velocityY = game.cat.jumpPower;
                 game.cat.isJumping = true;
                 currentCatImage = catImages.jumping;
+
+                // Find the next obstacle ahead
+                const nextObstacle = game.obstacles
+                    .filter((o) => o.x + o.width > game.cat.x)
+                    .sort((a, b) => a.x - b.x)[0];
+
+                game.cat.landingX = null;
+
+                if (nextObstacle) {
+                    // Shift jump window 20px to the right
+                    const windowStart = nextObstacle.x - 10;
+                    const windowEnd = nextObstacle.x + 10;
+
+                    // Use cat "front" to judge timing (right edge of hitbox)
+                    const catFrontX =
+                        game.cat.x + catHitbox.offsetX + catHitbox.width;
+
+                    if (catFrontX >= windowStart && catFrontX <= windowEnd) {
+                        // Shift landing further to the right as well
+                        const stoneRight =
+                            nextObstacle.x +
+                            nextObstacle.width -
+                            stoneHitboxInset.right;
+                        const desiredCatRight = stoneRight + 60;
+                        game.cat.landingX =
+                            desiredCatRight -
+                            (catHitbox.offsetX + catHitbox.width);
+                    }
+                }
             }
         };
 
@@ -201,9 +259,7 @@ class CatJumpingGame {
         document.addEventListener("keydown", handleKeyPress);
 
         // Game loop (delayed 1 second so popup is visible)
-        let gameLoopStarted = false;
         setTimeout(() => {
-            gameLoopStarted = true;
             gameLoop();
         }, 1000);
 
@@ -230,8 +286,23 @@ class CatJumpingGame {
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
             }
 
-            // Update cat horizontal movement (balanced speed for gameplay)
-            game.cat.x += game.cat.velocityX * 4;
+            let dx = game.cat.velocityX;
+
+            // Countdown for post-landing invincibility (prevents instant re-collide / flashing)
+            if (game.cat.invincibleFrames > 0) {
+                game.cat.invincibleFrames -= 1;
+            }
+
+            // Apply forward boost ONLY while jumping, and consume it progressively
+            if (game.cat.isJumping && game.cat.landingX !== null) {
+                const remaining = game.cat.landingX - game.cat.x;
+                if (remaining > 0) {
+                    const boostPerFrame = 10; // forward air speed
+                    dx += Math.min(boostPerFrame, remaining);
+                }
+            }
+
+            game.cat.x += dx;
 
             // Update cat physics (vertical)
             game.cat.velocityY += game.cat.gravity;
@@ -241,8 +312,28 @@ class CatJumpingGame {
             if (game.cat.y >= game.groundY) {
                 game.cat.y = game.groundY;
                 game.cat.velocityY = 0;
-                game.cat.isJumping = false;
-                currentCatImage = catImages.walking;
+
+                // Force correct landing position FIRST so we don't collide on the same frame
+                if (game.cat.landingX !== null) {
+                    game.cat.x = Math.max(game.cat.x, game.cat.landingX);
+                    game.cat.landingX = null;
+
+                    // Give a few frames of invincibility after a successful landing to avoid
+                    // immediately colliding with the same stone due to hitbox/padding.
+                    game.cat.invincibleFrames = 10;
+                }
+
+                // If we just landed from a jump
+                if (game.cat.isJumping) {
+                    game.cat.isJumping = false;
+                    currentCatImage = catImages.walking;
+
+                    // Reset animation frames for smooth transition
+                    walkingFrame = 0;
+                    frameCounter = 0;
+                    jumpingFrame = 0;
+                    jumpingFrameCounter = 0;
+                }
             }
 
             // Check if cat reached the goal
@@ -293,8 +384,35 @@ class CatJumpingGame {
                             game.cat.width,
                             game.cat.height, // Destination rectangle
                         );
+                    } else if (
+                        currentCatImage === catImages.jumping &&
+                        jumpingTotalFrames > 0
+                    ) {
+                        // Update jumping animation frame
+                        jumpingFrameCounter++;
+                        if (jumpingFrameCounter >= frameDelay) {
+                            jumpingFrameCounter = 0;
+                            jumpingFrame =
+                                (jumpingFrame + 1) % jumpingTotalFrames;
+                        }
+
+                        // Calculate frame position (40x40 sprites, left to right)
+                        const frameX = jumpingFrame * jumpingSpriteWidth;
+                        const frameY = 0; // First row
+
+                        ctx.drawImage(
+                            currentCatImage,
+                            frameX,
+                            frameY,
+                            jumpingSpriteWidth,
+                            jumpingSpriteHeight, // Source rectangle
+                            game.cat.x,
+                            game.cat.y,
+                            game.cat.width,
+                            game.cat.height, // Destination rectangle
+                        );
                     } else {
-                        // For other animations (jumping, idle, win), draw normally
+                        // For other animations (idle, win), draw normally
                         ctx.drawImage(
                             currentCatImage,
                             game.cat.x,
@@ -359,32 +477,43 @@ class CatJumpingGame {
                     );
                 }
 
-                // Check collision - cat hits obstacle if:
-                // 1. Walking through it (not jumping high enough)
-                // 2. Landing on top of it
-                const catBottom = game.cat.y + game.cat.height;
-                const catRight = game.cat.x + game.cat.width;
-                const obstacleTop = obstacle.y;
-                const obstacleLeft = obstacle.x;
-                const obstacleRight = obstacle.x + obstacle.width;
+                // Use smaller hitboxes for fair collisions
+                const catLeft = game.cat.x + catHitbox.offsetX;
+                const catTop = game.cat.y + catHitbox.offsetY;
+                const catRight = catLeft + catHitbox.width;
+                const catBottom = catTop + catHitbox.height;
 
-                // Cat overlaps horizontally with obstacle
+                const obstacleLeft = obstacle.x + stoneHitboxInset.left;
+                const obstacleRight =
+                    obstacle.x + obstacle.width - stoneHitboxInset.right;
+                const obstacleTop = obstacle.y + stoneHitboxInset.top;
+                const obstacleBottom =
+                    obstacle.y + obstacle.height - stoneHitboxInset.bottom;
+
                 const horizontalOverlap =
-                    catRight > obstacleLeft && game.cat.x < obstacleRight;
-
-                // Cat overlaps vertically with obstacle (any collision)
+                    catRight > obstacleLeft && catLeft < obstacleRight;
                 const verticalOverlap =
-                    catBottom > obstacleTop &&
-                    game.cat.y < obstacleTop + obstacle.height;
+                    catBottom > obstacleTop && catTop < obstacleBottom;
 
-                // Hit if cat touches obstacle in any way
-                if (horizontalOverlap && verticalOverlap) {
+                // Skip collision check if cat is in a perfect jump boost for this obstacle
+                const isBoostingOverThisObstacle =
+                    game.cat.isJumping && game.cat.landingX !== null;
+
+                // Hit if cat touches obstacle in any way (unless boosting over it)
+                // Also ignore collisions briefly after a successful landing.
+                if (
+                    game.cat.invincibleFrames <= 0 &&
+                    horizontalOverlap &&
+                    verticalOverlap &&
+                    !isBoostingOverThisObstacle
+                ) {
                     // HIT! Restart game
                     game.cat.x = 20;
                     game.cat.y = game.groundY;
                     game.cat.velocityY = 0;
                     game.cat.isJumping = false;
-                    jumpCountEl.textContent = "0%";
+                    game.cat.invincibleFrames = 0;
+                    jumpCountEl.textContent = "0";
                     console.log("[Scrollnt] Hit obstacle - restarting!");
                     currentCatImage = catImages.walking;
                     walkingFrame = 0;
@@ -393,12 +522,15 @@ class CatJumpingGame {
                 }
             }
 
-            // Calculate progress percentage (0-100%)
+            // Calculate progress percentage (0-100%), clamp to 0..100 and keep % only in HTML
             const progress = Math.min(
                 100,
-                Math.floor(((game.cat.x - 50) / (game.goalX - 50)) * 100),
+                Math.max(
+                    0,
+                    Math.floor(((game.cat.x - 50) / (game.goalX - 50)) * 100),
+                ),
             );
-            jumpCountEl.textContent = `${progress}%`;
+            jumpCountEl.textContent = `${progress}`;
 
             // Check win condition - cat reached the right side!
             if (game.cat.x >= game.goalX) {
@@ -410,13 +542,6 @@ class CatJumpingGame {
 
             requestAnimationFrame(gameLoop);
         };
-
-        // Start game loop after a small delay to ensure canvas is ready
-        setTimeout(() => {
-            if (self.gameActive) {
-                gameLoop();
-            }
-        }, 100);
     }
 
     gameWon() {
