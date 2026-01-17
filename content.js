@@ -468,7 +468,12 @@ class ScrollntTracker {
     }
 
     applyDesaturation() {
-        document.documentElement.classList.add("scrollnt-desaturate");
+        // Use desaturate-1 (static) for case 2, desaturate-2 (disco) for case 5
+        if (this.interventionLevel === 5) {
+            document.documentElement.classList.add("scrollnt-desaturate-2");
+        } else {
+            document.documentElement.classList.add("scrollnt-desaturate-1");
+        }
     }
 
     applyMicroZoomDrift(element) {
@@ -568,7 +573,7 @@ class ScrollntTracker {
     }
 
     removeDesaturation() {
-        document.documentElement.classList.remove("scrollnt-desaturate");
+        document.documentElement.classList.remove("scrollnt-desaturate-1", "scrollnt-desaturate-2");
     }
 
     removeInterventions() {
@@ -581,7 +586,8 @@ class ScrollntTracker {
             "scrollnt-viewport-shrink-1",
             "scrollnt-viewport-shrink-2",
             "scrollnt-viewport-shrink-3",
-            "scrollnt-desaturate",
+            "scrollnt-desaturate-1",
+            "scrollnt-desaturate-2",
         );
         this.removePadding();
         this.removeBlur();
