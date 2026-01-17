@@ -219,39 +219,53 @@ class ScrollntTracker {
             case 2:
                 // Padding handled by checkPaddingCycle
                 this.applyDesaturation();
+                // Scroll friction temporarily disabled - needs better implementation
+                // this.applyScrollFriction();
                 break;
             case 3:
                 // Padding handled by checkPaddingCycle
                 this.applyDesaturation();
                 this.applyMicroZoomDrift(container);
+                // Scroll friction temporarily disabled - needs better implementation
+                // this.applyScrollFriction();
                 break;
             case 4:
                 // Padding handled by checkPaddingCycle
                 this.applyDesaturation();
                 this.applyMicroZoomDrift(container);
+                // Scroll friction temporarily disabled - needs better implementation
+                // this.applyScrollFriction();
                 break;
             case 5:
                 // Padding handled by checkPaddingCycle
                 this.applyDesaturation();
                 this.applyMicroZoomDrift(container);
+                // Scroll friction temporarily disabled - needs better implementation
+                // this.applyScrollFriction();
                 break;
             case 6:
                 // Padding handled by checkPaddingCycle
                 this.applyDesaturation();
                 this.applyMicroZoomDrift(container);
                 this.applyBlur(container);
+                // Scroll friction temporarily disabled - needs better implementation
+                // this.applyScrollFriction();
                 break;
             case 7:
                 // Padding handled by checkPaddingCycle
                 this.applyDesaturation();
                 this.applyMicroZoomDrift(container);
                 this.applyBlur(container);
+                // Scroll friction temporarily disabled - needs better implementation
+                // this.applyScrollFriction();
                 break;
             case 8:
                 // Padding handled by checkPaddingCycle
                 this.applyDesaturation();
                 this.applyMicroZoomDrift(container);
                 this.applyBlur(container);
+                // Scroll friction temporarily disabled - needs better implementation
+                // this.applyScrollFriction();
                 break;
             case 9:
                 // Full Lockdown - all interventions
