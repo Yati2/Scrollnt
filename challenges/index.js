@@ -112,8 +112,8 @@ class ChallengeManager {
     loadRandomChallenge(challengeElement) {
         const challengeTypes = ['memory', 'math', 'typing', 'mole', 'sarcasticAI', 'youtubeWatch'];
         
-        // const randomType = challengeTypes[Math.floor(Math.random() * challengeTypes.length)];
-        const randomType = 'youtubeWatch'; // For testing only
+        const randomType = challengeTypes[Math.floor(Math.random() * challengeTypes.length)];
+        
         const taskDiv = challengeElement.querySelector("#scrollnt-challenge-task");
         const onComplete = async () => await this.completeChallenge(challengeElement);
 
