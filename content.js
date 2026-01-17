@@ -205,7 +205,7 @@ class ScrollntTracker {
 
         const durationCalc= (Date.now() - this.sessionStart) / 1000 / 60;
         
-        if (parseInt(durationCalc) <= 0) {
+        if (parseInt(durationCalc) <= 0 || this.maxDuration < 6) {
             return durationCalc;
         } else {
             return parseInt(durationCalc);
