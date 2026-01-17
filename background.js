@@ -6,27 +6,32 @@ chrome.runtime.onInstalled.addListener(() => {
 
     // Initialize storage
     chrome.storage.local.set({
-        sessionStart: Date.now(),
+        sessionStart: 0,
         videoCount: 0,
         totalTimeSpent: 0,
         maxDuration: 0, // default max duration in minutes
-});
+        sessionPaused: true,
+    });
 });
 
 // Listen for messages from content script
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === "updateStats") {
-        chrome.storage.local.set({
-            videoCount: request.videoCount,
-            sessionDuration: request.sessionDuration,
-            lastUpdate: Date.now(),
-            maxDuration: request.maxDuration,
+        // Only update sessionPaused if explicitly sent, preserve maxDuration
+        chrome.storage.local.get(["maxDuration"], (data) => {
+            chrome.storage.local.set({
+                videoCount: request.videoCount,
+                sessionDuration: request.sessionDuration,
+                lastUpdate: Date.now(),
+                maxDuration: data.maxDuration || request.maxDuration,
+                sessionPaused: request.sessionPaused,
+            });
         });
     }
 
     if (request.action === "getStats") {
         chrome.storage.local.get(
-            ["videoCount", "sessionStart", "sessionDuration", "maxDuration"],
+            ["videoCount", "sessionStart", "sessionDuration", "maxDuration", "sessionPaused"],
             (data) => {
                 sendResponse(data);
             },
@@ -35,13 +40,18 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     }
 
     if (request.action === "resetSession") {
-        chrome.storage.local.set({
-            sessionStart: Date.now(),
-            videoCount: 0,
-            sessionDuration: 0,
-            maxDuration: 0,
+        // Preserve maxDuration on reset
+        chrome.storage.local.get(["maxDuration"], (data) => {
+            chrome.storage.local.set({
+                sessionStart: Date.now(),
+                videoCount: 0,
+                sessionDuration: 0,
+                maxDuration: data.maxDuration || 0,
+                sessionPaused: true,
+            });
+            sendResponse({ success: true });
         });
-        sendResponse({ success: true });
+        return true;
     }
 });
 
