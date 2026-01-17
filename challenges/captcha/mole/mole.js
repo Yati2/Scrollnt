@@ -1,5 +1,5 @@
 // Mole Captcha Challenge
-// User must catch 4 moles that appear randomly in 9 boxes
+// User must catch 4 moles that appear randomly in 16 boxes
 
 function createMoleChallenge(taskDiv, challengeElement, onComplete) {
     const totalMolesNeeded = 4;
@@ -9,17 +9,17 @@ function createMoleChallenge(taskDiv, challengeElement, onComplete) {
     const clickedBoxes = new Set();
 
     const container = document.createElement("div");
-    container.className = "mole-challenge-container";
+    container.className = "captcha-challenge-container";
 
     const header = document.createElement("div");
-    header.className = "mole-captcha-header";
+    header.className = "captcha-header";
     const headerText = document.createElement("div");
-    headerText.className = "mole-captcha-header-text";
+    headerText.className = "captcha-header-text";
     headerText.innerHTML = 'Select all images with <strong>moles</strong><br>Click verify once there are none left.';
     header.appendChild(headerText);
 
     const status = document.createElement("div");
-    status.className = "mole-challenge-status";
+    status.className = "captcha-status";
     status.id = "mole-status";
     status.textContent = `${molesCaught} of ${totalMolesNeeded} selected`;
 
@@ -27,10 +27,10 @@ function createMoleChallenge(taskDiv, challengeElement, onComplete) {
     grid.className = "mole-challenge-grid";
     grid.id = "mole-grid";
 
-    // Create 9 boxes (3x3 grid)
+    // Create 16 boxes (4x4 grid)
     const grassUrl = chrome.runtime.getURL("assets/mole/grass.jpeg");
     const boxes = [];
-    for (let i = 0; i < 9; i++) {
+    for (let i = 0; i < 16; i++) {
         const box = document.createElement("div");
         box.className = "mole-box";
         box.dataset.index = i;
@@ -43,7 +43,7 @@ function createMoleChallenge(taskDiv, challengeElement, onComplete) {
     }
 
     const verifyButton = document.createElement("button");
-    verifyButton.className = "scrollnt-challenge-btn";
+    verifyButton.className = "captcha-verify-btn";
     verifyButton.id = "mole-verify-btn";
     verifyButton.textContent = "Verify";
     verifyButton.disabled = true;
@@ -59,11 +59,11 @@ function createMoleChallenge(taskDiv, challengeElement, onComplete) {
     });
 
     const controls = document.createElement("div");
-    controls.className = "mole-captcha-controls";
+    controls.className = "captcha-controls";
 
     const icons = document.createElement("div");
-    icons.className = "mole-captcha-icons";
-    icons.innerHTML = '<span class="mole-icon">↻</span><span class="mole-icon">🔊</span><span class="mole-icon">ℹ</span>';
+    icons.className = "captcha-icons";
+    icons.innerHTML = '<span class="captcha-icon">↻</span><span class="captcha-icon">🔊</span><span class="captcha-icon">ℹ</span>';
 
     controls.appendChild(icons);
     controls.appendChild(verifyButton);
@@ -133,6 +133,12 @@ function createMoleChallenge(taskDiv, challengeElement, onComplete) {
             const box = boxes[index];
             box.classList.add('mole-hit');
             box.classList.add('mole-caught');
+
+            // Replace mole sprite with whacked mole sprite
+            const moleImg = box.querySelector('.mole-sprite');
+            if (moleImg) {
+                moleImg.src = chrome.runtime.getURL("assets/mole/whacked_mole_sprite.png");
+            }
 
             setTimeout(() => {
                 box.classList.remove('mole-hit');
