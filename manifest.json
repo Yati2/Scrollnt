@@ -3,7 +3,7 @@
     "name": "Scrollnt",
     "version": "1.0.0",
     "description": "A behavior-aware system that progressively discourages excessive scrolling on short-form video platforms",
-    "permissions": ["storage", "activeTab"],
+    "permissions": ["storage", "activeTab", "idle"],
     "host_permissions": ["*://*.tiktok.com/*"],
     "content_scripts": [
         {
