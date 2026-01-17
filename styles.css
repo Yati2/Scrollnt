@@ -167,6 +167,15 @@ html.scrollnt-zoom-drift {
     align-items: center;
     justify-content: center;
     animation: scrollnt-fade-in 0.3s ease;
+    filter: none !important;
+    transform-origin: center center !important;
+    isolation: isolate;
+}
+
+
+.scrollnt-challenge-content,
+.scrollnt-challenge-content * {
+    filter: none !important;
 }
 
 .scrollnt-challenge-content {
@@ -177,6 +186,8 @@ html.scrollnt-zoom-drift {
     max-width: 500px;
     text-align: center;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
+    transform: none !important;
+    filter: none !important;
 }
 
 .scrollnt-challenge h2 {
@@ -239,4 +250,79 @@ html.scrollnt-zoom-drift {
     overscroll-behavior: contain !important;
     /* Add slight resistance feel */
     touch-action: pan-y !important;
+}
+
+/* Memory Game Styles */
+.memory-game-container {
+    width: 100%;
+    max-width: 100%;
+    margin: 0 auto;
+}
+
+.memory-game-container h3 {
+    margin: 0 0 8px 0;
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.memory-game-container>p {
+    margin: 0 0 15px 0;
+    font-size: 14px;
+    opacity: 0.9;
+}
+
+.memory-game-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin: 15px 0;
+    max-width: 250px;
+    margin-left: auto;
+    margin-right: auto;
+    justify-items: center;
+}
+
+.memory-game-button {
+    aspect-ratio: 1;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: transform 0.2s, opacity 0.2s, box-shadow 0.2s;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    min-height: 60px;
+}
+
+.memory-game-button:hover:not(:disabled) {
+    transform: scale(1.05);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+}
+
+.memory-game-button:active:not(:disabled) {
+    transform: scale(0.95);
+}
+
+.memory-game-button:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.memory-game-status {
+    text-align: center;
+    font-size: 16px;
+    font-weight: 600;
+    margin: 12px 0;
+    min-height: 24px;
+    color: white;
+    transition: color 0.3s;
+}
+
+.memory-game-info {
+    text-align: center;
+    font-size: 12px;
+    opacity: 0.8;
+    margin-top: 10px;
+}
+
+.memory-game-info p {
+    margin: 5px 0;
 }

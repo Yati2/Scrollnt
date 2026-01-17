@@ -15,6 +15,7 @@ class ScrollntTracker {
         this.currentPaddingSide = null;
         this.lastPaddingCycleTime = 0;
         this.lastShrinkCycleTime = 0;
+        this.challengeManager = new ChallengeManager(this);
         this.loadUserSettings();
     }
 
@@ -206,6 +207,8 @@ class ScrollntTracker {
 
     checkInterventionNeeded() {
         if (this.sessionPaused) return;
+        // Don't apply interventions if challenge is currently showing
+        if (document.querySelector(".scrollnt-challenge")) return;
         const duration = this.getSessionDuration();
         const md = this.maxDuration;
         if (duration >= md) {
@@ -258,6 +261,7 @@ class ScrollntTracker {
                 this.applyDesaturation();
                 // Scroll friction temporarily disabled - needs better implementation
                 // this.applyScrollFriction();
+                this.challengeManager.checkChallengeTrigger(2);
                 break;
             case 3:
                 // Padding handled by checkPaddingCycle
@@ -279,6 +283,7 @@ class ScrollntTracker {
                 this.applyMicroZoomDrift(container);
                 // Scroll friction temporarily disabled - needs better implementation
                 // this.applyScrollFriction();
+                this.challengeManager.checkChallengeTrigger(5);
                 break;
             case 6:
                 // Padding handled by checkPaddingCycle
@@ -303,6 +308,7 @@ class ScrollntTracker {
                 this.applyBlur(container);
                 // Scroll friction temporarily disabled - needs better implementation
                 // this.applyScrollFriction();
+                this.challengeManager.checkChallengeTrigger(8);
                 break;
             case 9:
                 // Full Lockdown - all interventions
@@ -469,41 +475,6 @@ class ScrollntTracker {
         setTimeout(() => {
             if (reminder.parentNode) reminder.remove();
         }, 10000);
-    }
-
-    showChallenge() {
-        if (document.querySelector(".scrollnt-challenge")) return;
-
-        const challenge = document.createElement("div");
-        challenge.className = "scrollnt-challenge";
-        challenge.innerHTML = `
-      <div class="scrollnt-challenge-content">
-        <h2>Time for a Challenge! 🎯</h2>
-        <p>You've been scrolling for ${this.getSessionDuration()} minutes</p>
-        <p>Complete a quick challenge to continue:</p>
-        <div id="scrollnt-challenge-task"></div>
-        <button class="scrollnt-challenge-btn">Start Challenge</button>
-      </div>
-    `;
-        document.body.appendChild(challenge);
-
-        this.loadRandomChallenge(challenge);
-    }
-
-    loadRandomChallenge(challengeElement) {
-        const challenges = [
-            "Solve: 15 × 7 = ?",
-            'Type "productivity" backwards',
-            "Name 3 things you're grateful for today",
-            "Do 10 jumping jacks",
-        ];
-
-        const randomChallenge =
-            challenges[Math.floor(Math.random() * challenges.length)];
-        const taskDiv = challengeElement.querySelector(
-            "#scrollnt-challenge-task",
-        );
-        taskDiv.innerHTML = `<p><strong>${randomChallenge}</strong></p>`;
     }
 
     removePadding() {
