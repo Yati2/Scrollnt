@@ -10,7 +10,7 @@ class ReminderCard {
     reminder.className = "scrollnt-reminder";
     reminder.innerHTML = `
       <div class="scrollnt-reminder-content">
-      <h3>You've watched ${videoCount} videos for ${sessionDuration} minutes</h3>
+      <h3>You've watched ${videoCount} videos for ${Math.round(sessionDuration,2)} minutes</h3>
       <p>${scolding}</p>
       <p>Consider taking a break? 🌟</p>
       <button class="scrollnt-dismiss" disabled style="background: #ccc; color: #888; cursor: not-allowed;">Dismiss</button>

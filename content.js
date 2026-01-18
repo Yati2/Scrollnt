@@ -266,7 +266,8 @@ class ScrollntTracker {
         const durationCalc = elapsedTime / 1000 / 60; // minutes
 
         if (parseInt(durationCalc) <= 0 || this.maxDuration < 6) {
-            return Math.round(durationCalc,2);
+            // return Math.round(durationCalc,2);
+            return durationCalc;
         } else {
             return parseInt(durationCalc);
         }
