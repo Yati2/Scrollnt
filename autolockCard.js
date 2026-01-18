@@ -10,7 +10,7 @@ class AutolockCard {
     reminder.className = "scrollnt-autolock";
     reminder.innerHTML = `
       <div class="scrollnt-autolock-content">
-      <h3>You've watched ${videoCount} videos for ${sessionDuration} minutes</h3>
+      <h3>You've watched ${videoCount} videos for ${Math.floor(sessionDuration)} minutes</h3>
       <p>${scolding}</p>
       <p>No more videos for you, bye 🌟</p>
       </div>
