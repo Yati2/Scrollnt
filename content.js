@@ -561,7 +561,7 @@ class ScrollntTracker {
                 // Get parent container
                 const container = likeBtn.parentElement;
                 if (!container) {
-                    console.warn(`[Scrollnt] No parent container found`);
+                    // Silently skip if there's no container; this can happen on some layouts
                     return;
                 }
 
@@ -588,10 +588,6 @@ class ScrollntTracker {
 
                 swappedCount++;
                 console.log(`[Scrollnt] Swapped buttons in article ${index}`);
-            } else {
-                console.warn(
-                    `[Scrollnt] Article ${index} missing buttons - like: ${!!likeBtn}, comment: ${!!commentBtn}, share: ${!!shareBtn}`,
-                );
             }
         });
 
