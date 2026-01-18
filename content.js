@@ -266,7 +266,7 @@ class ScrollntTracker {
         const durationCalc = elapsedTime / 1000 / 60; // minutes
 
         if (parseInt(durationCalc) <= 0 || this.maxDuration < 6) {
-            return durationCalc;
+            return Math.round(durationCalc,2);
         } else {
             return parseInt(durationCalc);
         }
@@ -703,23 +703,30 @@ class ScrollntTracker {
         document.documentElement.classList.remove("scrollnt-zoom-drift");
     }
 
+    reminderPromise = null;
     showReminder() {
-        if (document.querySelector(".scrollnt-reminder")) return;
+        // Prevent multiple reminders and queue up if one is already showing
+        if (this.reminderPromise) return this.reminderPromise;
 
         const sessionDuration = this.getSessionDuration();
-        const reminderCount =
-            chrome.storage.local
-                .get(["reminderCount"])
-                .then((data) => data.reminderCount || 0) || 0;
-        if (reminderCount <= 3) {
-            this.reminderCount = reminderCount + 1;
-            chrome.storage.local.set({ reminderCount: this.reminderCount });
-        }
-        this.reminderCardManager.show(
-            this.videoCount,
-            sessionDuration,
-            this.reminderCount,
-        );
+        const reminderCountPromise = chrome.storage.local
+            .get(["reminderCount"])
+            .then((data) => data.reminderCount || 0);
+
+        this.reminderPromise = (async () => {
+            const reminderCount = await reminderCountPromise;
+            if (reminderCount <= 3) {
+                this.reminderCount = reminderCount + 1;
+                chrome.storage.local.set({ reminderCount: this.reminderCount });
+            }
+            await this.reminderCardManager.show(
+                this.videoCount,
+                sessionDuration,
+                this.reminderCount,
+            );
+            this.reminderPromise = null;
+        })();
+        return this.reminderPromise;
     }
 
     showChallenge() {
